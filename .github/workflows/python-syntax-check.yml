@@ -1,0 +1,37 @@
+name: Python Syntax Check
+
+on:
+  push:
+  pull_request:
+    paths:
+      - '**.py'
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']   # tweak to match prod images
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'   # speeds up on re-runs
+
+      - name: Install minimal tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8
+
+      # Pure syntax check – flake8 error codes that flag syntax/parse issues
+      - name: Run flake8 syntax-only rules
+        run: |
+          flake8 . --select=E9,F63,F7,F82 --show-source --statistics
+          # Also byte-compile everything to be extra sure
+          python -m compileall -q -f .
+

@@ -1,0 +1,12 @@
+# /etc/systemd/system/fgate-vpn-honeypot-parse-and-report.service
+[Unit]
+Description=Parse and report FortiGate VPN-SSL Honeypot service
+
+[Service]
+User=USER
+Group=GROUP
+WorkingDirectory=/PATH/
+Type=oneshot
+ExecStart=/PATH/parse.sh
+ExecStart=-/PATH/report_to_otx/.venv/bin/python3 -c CONFIG
+

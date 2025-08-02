@@ -1,0 +1,10 @@
+# /etc/systemd/system/fgate-vpn-honeypot-parse-and-report.timer
+[Unit]
+Description=Parse and report FortiGate VPN-SSL Honeypot service timer
+
+[Timer]
+OnCalendar=*:0/30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

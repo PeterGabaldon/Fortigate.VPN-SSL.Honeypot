@@ -1,0 +1,14 @@
+# report_to_otx.config.yaml.template
+
+otx_api_key: YOUR_OTX_API_KEY_HERE
+
+pulse:
+  name: "FortiGate VPN-SSL Honeypot"
+  description: "IPs bruteforcing FortiGate VPN-SSL gathered from Honeypot"
+  type: "blacklist"     # or "threat", "vulnerability", etc.
+  public: true
+  tlp: "WHITE"          # TLP: WHITE, GREEN, AMBER, RED
+
+honeypot:
+  ip_file: "./honeypot_bad_ips.txt"
+

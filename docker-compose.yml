@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  nginx-fortihoney:
+    network_mode: "host"
+    build: ./nginx/
+    container_name: nginx-fortihoney
+    read_only: true
+    restart: always
+    tmpfs:
+     - /var/tmp/nginx/client_body
+     - /var/tmp/nginx/proxy
+     - /var/tmp/nginx/fastcgi
+     - /var/tmp/nginx/uwsgi
+     - /var/tmp/nginx/scgi
+     - /run
+     - /var/lib/nginx/tmp:uid=100,gid=82
+    volumes:
+      - ./data/log/nginx/:/var/log/nginx/
+
+  fortihoney:
+    build: ./honey/
+    container_name: fortihoney
+    read_only: true
+    restart: always
+    ports:
+      - 127.0.0.1:5000:5000
+    volumes:
+        - ./data/log/honey/:/var/log/fortihoney/

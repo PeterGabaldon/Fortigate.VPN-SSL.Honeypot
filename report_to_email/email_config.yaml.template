@@ -1,0 +1,11 @@
+subject: "📊 FortiGate VPN-SSL Honeypot – Daily Report"
+from: "Honeypot <honeypot@example.com>"   # optional; defaults to username if omitted
+to:
+  - security@example.com
+  - soc@example.com
+smtp:
+  host: smtp.example.com
+  port: 465              # 465 = SMTPS, 587 = STARTTLS, 25 = opportunistic
+  username: honeypot@example.com
+  password: "s3cr3tP@ssw0rd"
+  use_ssl: true          # true ⇒ implicit TLS (465); false ⇒ STARTTLS (587/25)

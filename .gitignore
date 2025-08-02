@@ -1,0 +1,16 @@
+data/**
+nginx/dist/conf/ssl/dhparam*.pem
+nginx/dist/conf/ssl/nginx.crt
+nginx/dist/conf/ssl/nginx.key
+report_to_otx/otx_config/*.yaml
+report_to_otx/otx_config/*.yml
+report_to_otx/otx_config/state_*.txt
+report_to_email/*.yaml
+report_to_email/*.yml
+report_to_vt/vt_config/*.yaml
+report_to_vt/vt_config/*.yml
+report_to_vt/vt_config/state_*.txt
+output_parsing/**
+report_to_otx/.venv
+db/honeypot.db
+exfiltrated_passwords.txt
