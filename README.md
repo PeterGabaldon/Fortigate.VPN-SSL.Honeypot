@@ -53,7 +53,7 @@ $ /bin/bash ./nginx/dist/conf/ssl/gen-dhparam.sh 2048
 $ docker compose up # 🔥 boots nginx & honeypot
 
 # 4. Parse logs & load SQLite
-$ ./parse.sh   # ➜ data/db/honeypot.db gets populated
+$ /bin/bash ./parse.sh   # ➜ data/db/honeypot.db gets populated
 ```
 
 *The portal will go live on 10443 (host network) by default.*
