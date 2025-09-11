@@ -46,8 +46,8 @@ $ git clone https://github.com/PeterGabaldon/Fortigate.VPN-SSL.Honeypot.git
 $ cd Fortigate.VPN-SSL.Honeypot-main
 
 # 2. Generate TLS material (one‑off)
-$ ./nginx/dist/conf/ssl/gen-cert.sh
-$ ./nginx/dist/conf/ssl/gen-dhparam.sh 2048
+$ /bin/bash ./nginx/dist/conf/ssl/gen-cert.sh
+$ /bin/bash ./nginx/dist/conf/ssl/gen-dhparam.sh 2048
 
 # 3. Run with docker compose
 $ docker compose up # 🔥 boots nginx & honeypot
