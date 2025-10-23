@@ -49,7 +49,7 @@ $ cd Fortigate.VPN-SSL.Honeypot-main
 $ cd ./nginx/dist/conf/ssl/
 $ bash gen-cert.sh
 
- (Ensure that the generated certificates are placed under ./nginx/dist/conf/ssl/)
+(Ensure that the generated certificates are placed under ./nginx/dist/conf/ssl/)
 
 $ cd ./nginx/dist/conf/ssl/gen-dhparam.sh 2048
 $ bash gen-dhparam.sh 2048
