@@ -48,13 +48,9 @@ $ cd Fortigate.VPN-SSL.Honeypot-main
 # 2. Generate TLS material (one‑off) (Modify certificate data in gen-cert.sh for OPSEC)
 $ cd ./nginx/dist/conf/ssl/
 $ bash gen-cert.sh
-
-(Ensure that the generated certificates are placed under ./nginx/dist/conf/ssl/)
-
-$ cd ./nginx/dist/conf/ssl/gen-dhparam.sh 2048
 $ bash gen-dhparam.sh 2048
 
-(Ensure that the generated dhparam is placed under ./nginx/dist/conf/ssl/)
+(Ensure that the generated certificates are placed under ./nginx/dist/conf/ssl/)
 
 # 3. Run with docker compose
 $ docker compose up # 🔥 boots nginx & honeypot
