@@ -50,7 +50,7 @@ The docker images pushed on the repository contains a preloaded TLS configuratio
 
 This has two cons:
 1. The Honeypot can be fingerprinted.
-2. The private key is known to everyone, so consider the communication to yout Honeypot compromised.
+2. The private key is known to everyone, so consider the communications to your Honeypot compromised.
 ```
 
 Because of that I recommend that you modify the TLS configuration in the nginx container or building from the repository.
