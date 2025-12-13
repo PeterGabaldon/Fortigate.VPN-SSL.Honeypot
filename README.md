@@ -40,16 +40,20 @@ A **deception honeypot** that mimics FortiGate VPN-SSL devices to trap brute for
 
 ## 3 🐳 Main Usage
 
+There are two options available: pulling the images from Docker Hub or building from the repository.
+
 ### From Docker Hub
 
 ⚠️⚠️⚠️
 ```
-The docker images pushed on the repository contains a preloaded TLS configuration. The nginx image contains a RSA key pair and DH param configured. This is neccessary for the image be ready to run.
+The docker images pushed on the repository contains a preloaded TLS configuration. The nginx image contains a RSA key pair and DH param configured. This is neccessary for the image to be ready to run.
 
 This has two cons:
 1. The Honeypot can be fingerprinted.
 2. The private key is known to everyone, so consider the communication to yout Honeypot compromised.
 ```
+
+Because of that I recommend that you modify the TLS configuration in the nginx container or building from the repository.
 
 Use `docker-compose-hub.yml` to get the images from Docker Hub.
 
