@@ -40,6 +40,27 @@ A **deception honeypot** that mimics FortiGate VPN-SSL devices to trap brute for
 
 ## 3 🐳 Main Usage
 
+### From Docker Hub
+
+⚠️⚠️⚠️
+```
+The docker images pushed on the repository contains a preloaded TLS configuration. The nginx image contains a RSA key pair and DH param configured. This is neccessary for the image be ready to run.
+
+This has two cons:
+1. The Honeypot can be fingerprinted.
+2. The private key is known to everyone, so consider the communication to yout Honeypot compromised.
+```
+
+Use `docker-compose-hub.yml` to get the images from Docker Hub.
+
+- [https://hub.docker.com/r/peterg11/fortigate.vpn-ssl.honeypot](https://hub.docker.com/r/peterg11/fortigate.vpn-ssl.honeypot)
+
+```bash
+$ sudo docker compose up -f ./docker-compose-hub.yml
+```
+
+### Building from repository
+
 ```bash
 # 1. Clone & build
 $ git clone https://github.com/PeterGabaldon/Fortigate.VPN-SSL.Honeypot.git
