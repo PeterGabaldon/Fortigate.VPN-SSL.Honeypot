@@ -49,12 +49,42 @@ jobs:
             exit 1
           fi
 
-      # 6. Show logs for visibility
+      # 6. Login to Docker Hub (only push on direct pushes, not PRs)
+      - name: Login to Docker Hub
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # 7. Tag and push images built by docker compose
+      - name: Tag & push images to Docker Hub
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+
+          # IMPORTANT:
+          # These must match your docker-compose.yml service names for the two images you want to push.
+          FORTIHONEY_SERVICE="fortigatevpn-sslhoneypot-fortihoney:latest"
+          NGINX_SERVICE="fortigatevpn-sslhoneypot-nginx-fortihoney:latest"   # change to "nginx-fortihoney" if that's your service name
+
+          FORTIHONEY_TAG="peterg11/fortigate.vpn-ssl.honeypot:fortigatevpn-sslhoneypot-fortihoney"
+          NGINX_TAG="peterg11/fortigate.vpn-ssl.honeypot:fortigatevpn-sslhoneypot-nginx-fortihoney"
+          
+          echo "🏷️ Tagging images..."
+          docker tag "${FORTIHONEY_SERVICE}" "${FORTIHONEY_TAG}"
+          docker tag "${NGINX_SERVICE}" "${NGINX_TAG}"
+
+          echo "🚀 Pushing to Docker Hub..."
+          docker push "${FORTIHONEY_TAG}"
+          docker push "${NGINX_TAG}"          
+
+      # 8. Show logs for visibility
       - name: Print compose logs
         if: always()          # run even on failure
         run: docker compose logs --no-color
 
-      # 7. Tear down to free runner space
+      # 9. Tear down to free runner space
       - name: docker-compose down
         if: always()
         run: docker compose down -v
