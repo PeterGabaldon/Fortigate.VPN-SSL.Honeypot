@@ -33,8 +33,8 @@ A **deception honeypot** that mimics FortiGate VPN-SSL devices to trap brute for
 | 📧**Report to email**           | HTML dashboard with summary of Honeypot traps |
 | 🌐**Report to OTX**             | Posts new bad IPs to AlienVault OTX pulses                         |
 | 🔍**Report to VT**              | Down‑votes & comments IPs on VirusTotal              |
-| 🙈**Counter‑intel**             | Flags any password present in `exfiltrated_passwords.txt` used for counter ingelligence. Deliberately exfiltrate credentials and detect attempts to use them.          |
-| ~~⚠️**Symlink exploit detection**~~ | ~~Catches symlink exploit attempts.~~ Unfortunately, as this is not public yet it has been removed. Showing the detection approach would shows also how to exploit it. |
+| 🙈**Counter‑intel**             | Flags any password present in `exfiltrated_passwords.txt` used for counter ingelligence. Deliberately exfiltrate credentials and detect attempts to use them          |
+| ⚠️**Symlink exploit detection** | Catches symlink exploit attempts. [https://pgj11.com/posts/FortiGate-Symlink-Attack/](https://pgj11.com/posts/FortiGate-Symlink-Attack/) |
 
 ---
 
