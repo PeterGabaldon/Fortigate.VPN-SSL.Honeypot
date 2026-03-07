@@ -40,8 +40,9 @@ bad_ips_list=$(awk '{print $3, $4}' "$LOG_CREDS" | sort -u \
   | jq -s '.')
 
 # Symlink exploit IPs from Nginx JSON log
-# Unfortunately, as this is not public yet it has been removed. Showing the detection approach would shows also how to exploit it.
-symlink_list='{}'
+symlink_list=$(jq -r 'select(.request_uri|startswith("/lang/custom/")) | {ip:.src_ip, time:.time_iso8601}' \
+                   "$LOG_NGINX" \
+                | jq -s '.')
 
 # 2) Human-readable output
 echo "Number of username/password test by IP"
