@@ -305,6 +305,7 @@ Ideas to exfiltrate credentials
 - [x] Detect deliberately exfiltrated credentials
 - [ ] Check credentials in LDAP and raise High Alert
 - [ ] Report summary with LLM (OpenRouter)
+- [ ] In some cases, _jq_ may fail if so many credentials are to parse
 - [ ] ...
 
 Any ideas and PRs are welcome!
