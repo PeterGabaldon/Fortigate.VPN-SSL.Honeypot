@@ -303,6 +303,8 @@ Ideas to exfiltrate credentials
 - [ ] Report to AbuseIPDB
 - [ ] VT collection
 - [x] Detect deliberately exfiltrated credentials
+- [ ] Check credentials in LDAP and raise High Alert
+- [ ] Report summary with LLM (OpenRouter)
 - [ ] ...
 
 Any ideas and PRs are welcome!
