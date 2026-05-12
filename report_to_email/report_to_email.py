@@ -220,10 +220,12 @@ def main():
     start_dt = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=args.hours)
     exfil_pwds = load_exfil()
     sections = query_db(start_dt.isoformat(), exfil_pwds)
+    llm_summary = generate_llm_summary(cfg, sections)
 
     # Context for Jinja2 template rendering
     ctx = {
         "subject": cfg["subject"],
+        "llm_summary": llm_summary,
         "data": sections,
         # Map table headings for convenience in default template
         "headers": {
@@ -241,6 +243,29 @@ def main():
             ("👤 Attempts by User", "tests_by_user"),
             ("🔑 Attempts by Password", "tests_by_password"),
             ("⚠️ Symlink Exploit Attempts", "symlink_exploits"),
+            ("⛔ Bad IPs", "bad_ips"),
+            ("💥 Exfiltrated Credentials", "exfil_creds")
+        ],
+        # mapping for default template to iterate over values conveniently
+        "col_map": {
+            "tests_by_ip": ["ip", "count", "ts"],
+            "tests_by_user_pass_ip": ["user", "pass", "ip", "count"],
+            "tests_by_user": ["user", "count"],
+            "tests_by_password": ["password", "count"],
+            "symlink_exploits": ["ip", "path", "count", "ts"],
+            "bad_ips": ["ip"],
+            "exfil_creds": ["user", "pass", "ip", "ts"]
+        }
+    }
+
+    html_body = render_html(args.template, ctx)
+    send_email(cfg, html_body)
+    print("✅ E‑mail report sent (last", args.hours, "h)")
+
+
+if __name__ == "__main__":
+    main()
+loit Attempts", "symlink_exploits"),
             ("⛔ Bad IPs", "bad_ips"),
             ("💥 Exfiltrated Credentials", "exfil_creds")
         ],
