@@ -9,4 +9,5 @@ WorkingDirectory=/PATH/
 Type=oneshot
 ExecStart=/PATH/parse.sh
 ExecStart=-/PATH/report_to_otx/.venv/bin/python3 -c CONFIG
+ExecStart=-/PATH/report_to_abuseipdb/.venv/bin/python3 /PATH/report_to_abuseipdb/report_to_abuseipdb.py -c /PATH/report_to_abuseipdb/abuseipdb_config/report_to_abuseipdb.config.yaml
 
