@@ -265,26 +265,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-loit Attempts", "symlink_exploits"),
-            ("⛔ Bad IPs", "bad_ips"),
-            ("💥 Exfiltrated Credentials", "exfil_creds")
-        ],
-        # mapping for default template to iterate over values conveniently
-        "col_map": {
-            "tests_by_ip": ["ip", "count", "ts"],
-            "tests_by_user_pass_ip": ["user", "pass", "ip", "count"],
-            "tests_by_user": ["user", "count"],
-            "tests_by_password": ["password", "count"],
-            "symlink_exploits": ["ip", "path", "count", "ts"],
-            "bad_ips": ["ip"],
-            "exfil_creds": ["user", "pass", "ip", "ts"]
-        }
-    }
-
-    html_body = render_html(args.template, ctx)
-    send_email(cfg, html_body)
-    print("✅ E‑mail report sent (last", args.hours, "h)")
-
-
-if __name__ == "__main__":
-    main()

@@ -49,6 +49,10 @@ def vt_downvote(api_key: str, ip: str):
 def vt_comment(api_key: str, ip: str, text: str):
     vt_request(api_key, "POST", f"/ip_addresses/{ip}/comments", json={"data": {"type": "comment", "attributes": {"text": text}}})
 
+
+def vt_add_to_collection(api_key: str, collection_id: str, ip: str):
+    vt_request(api_key, "POST", f"/collections/{collection_id}/items", json={"data": [{"type": "ip_address", "id": ip}]})
+
 # ──────────────────────────── State file ────────────────────────────────────
 
 def sanitize(tag: str) -> str:
