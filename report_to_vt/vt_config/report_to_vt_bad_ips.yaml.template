@@ -1,5 +1,6 @@
 vt_api_key: "<YOUR VT API KEY>"
 tag: "FortiGate VPN‑SSL Honeypot"        # used for per‑tag state tracking
 comment: "IP {ip} was seen bruteforcing FortiGate VPN-SSL at {seen} 🛡️"
+collection_id: ""
 honeypot:
   ip_file: "../honeypot_bad_ips.txt"     

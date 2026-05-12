@@ -118,6 +118,7 @@ def main():
     tag = cfg.get("tag", "FortiGate VPN-SSL Honeypot")
     comment_tpl = cfg.get("comment", "IP {ip} seen at {seen}")
     hours_window = cfg.get("hours", 24)
+    collection_id = cfg.get("collection_id")
 
     last_dt = load_last_dt(state_path(tag))
     entries = fetch_new_ips(args.db, last_dt, hours_window)
@@ -131,6 +132,11 @@ def main():
         try:
             vt_downvote(api_key, ip)
             vt_comment(api_key, ip, comment_tpl.format(ip=ip, seen=seen.isoformat()))
+            if collection_id:
+                try:
+                    vt_add_to_collection(api_key, collection_id, ip)
+                except Exception as e:
+                    print(f"⚠️  {ip} (collection): {e}", file=sys.stderr)
             print(f"✅ {ip}")
         except Exception as e:
             print(f"⚠️  {ip}: {e}", file=sys.stderr)
