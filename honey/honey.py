@@ -6,8 +6,11 @@ import uuid
 
 app = Flask(__name__)
 
+APP_ETAG = f'"{uuid.uuid4().hex}"'
+
+
 def make_etag():
-    return f'"{uuid.uuid4().hex}"'
+    return APP_ETAG
 
 @app.route('/', methods=['GET'])
 def root():
