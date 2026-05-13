@@ -102,7 +102,7 @@ def create_pulse(otx: OTXv2, cfg: dict, ips: list):
     """
     p = cfg["pulse"]
 
-    indicators = [{"indicator": ip, "type": "IPv4"} for ip in ips]
+    indicators = [{"indicator": ip, "type": IndicatorTypes.IPv4} for ip in ips]
 
     # Create the pulse itself
     try:
@@ -131,7 +131,7 @@ def sync_pulse_indicators(otx: OTXv2, pulse_id: str, ips: list):
     for ip, dt in ips:
         if ip not in existing_indicators:
             indicator = {
-                "type":      "IPv4",
+                "type":      IndicatorTypes.IPv4,
                 "indicator": ip
             }
             try:
