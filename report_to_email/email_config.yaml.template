@@ -1,3 +1,7 @@
+openrouter_api_key: ""
+openrouter_model: "openai/gpt-3.5-turbo"
+system_prompt: "You are a cybersecurity analyst. Summarize the following honeypot data in a brief executive summary. Highlight top IP attackers and most tested credentials."
+
 subject: "📊 FortiGate VPN-SSL Honeypot – Daily Report"
 from: "Honeypot <honeypot@example.com>"   # optional; defaults to username if omitted
 to:

@@ -1,2 +1,2 @@
-vt-py
+ldap3
 PyYAML
