@@ -50,6 +50,15 @@ def load_exfil() -> set[str]:
         return {line.strip() for line in EXFIL_FILE.read_text(encoding="utf-8").splitlines() if line.strip()}
     return set()
 
+
+def generate_llm_summary(cfg: dict, sections: dict) -> str | None:
+    """
+    Placeholder for LLM summary generation.
+    TODO: Implement OpenRouter integration.
+    """
+    return None
+
+
 ###############################################################################
 # DB query – now derived from RAW tables                                      #
 ###############################################################################
