@@ -1,6 +1,7 @@
 from flask import Flask, Response, request, redirect, send_from_directory
 from datetime import datetime, timezone
 from pathlib import Path
+import html
 
 import uuid
 
@@ -389,7 +390,7 @@ def login_check():
 @app.errorhandler(404)
 def handle_not_found(e):
     # Return 403 Forbidden for undefined routes
-    path = request.path
+    path = html.escape(request.path)
     html_body = f'''<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <HTML><HEAD>
 <TITLE>403 Forbidden</TITLE>
