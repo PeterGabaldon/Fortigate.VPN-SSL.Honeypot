@@ -6,6 +6,17 @@ import uuid
 
 app = Flask(__name__)
 
+# Log configuration
+LOG_DIR = Path('/var/log/fortihoney')
+LOG_FILE = LOG_DIR / 'creds.log'
+
+try:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    # If initial directory creation fails, we'll ignore it here
+    # and let the per-request logging handle failures gracefully.
+    pass
+
 def make_etag():
     return f'"{uuid.uuid4().hex}"'
 
@@ -355,12 +366,9 @@ def login_check():
     # Client IP
     ip = request.headers.get('X-Forwarded-For')
     # Log credentials to file
-    log_dir = Path('/var/log/fortihoney')
-    log_file = log_dir / 'creds.log'
     date = datetime.now(timezone.utc).isoformat()
     try:
-        log_dir.mkdir(parents=True, exist_ok=True)
-        with log_file.open('a') as f:
+        with LOG_FILE.open('a') as f:
             f.write(f"{username}\t{password}\t{ip}\t{date}\n")
     except Exception:
         # If logging fails, ignore to not disrupt response
