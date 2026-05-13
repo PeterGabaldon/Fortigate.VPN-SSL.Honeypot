@@ -300,12 +300,12 @@ Ideas to exfiltrate credentials
 - [x] Documentation
 - [x] Github Actions - Docker 
 - [x] Github Actions - Python
-- [ ] Report to AbuseIPDB
-- [ ] VT collection
+- [x] Report to AbuseIPDB
+- [x] VT collection
 - [x] Detect deliberately exfiltrated credentials
-- [ ] Check credentials in LDAP and raise High Alert
-- [ ] Report summary with LLM (OpenRouter)
-- [ ] In some cases, _jq_ may fail if so many credentials are to parse
+- [x] Check credentials in LDAP and raise High Alert
+- [x] Report summary with LLM (OpenRouter)
+- [x] In some cases, _jq_ may fail if so many credentials are to parse
 - [ ] ...
 
 Any ideas and PRs are welcome!

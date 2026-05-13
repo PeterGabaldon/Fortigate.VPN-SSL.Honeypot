@@ -21,9 +21,11 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib.parse import unquote_plus
+import json
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from openai import OpenAI
 
 # ---------------------------------------------------------------------------
 # Paths / template
@@ -168,6 +170,40 @@ def query_db(start_iso: str, exfil_set: set[str]):
 
     conn.close()
     return sections
+
+
+def generate_llm_summary(cfg: dict, sections: dict) -> str:
+    api_key = cfg.get("openrouter_api_key")
+    if not api_key:
+        return ""
+
+    model = cfg.get("openrouter_model", "openai/gpt-3.5-turbo")
+    system_prompt = cfg.get(
+        "system_prompt",
+        "You are a cybersecurity analyst. Summarize the following honeypot data in a brief executive summary. Highlight top IP attackers and most tested credentials."
+    )
+
+    try:
+        client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=api_key,
+        )
+
+        user_content = json.dumps(sections, indent=2, default=str)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+        )
+
+        if response.choices:
+            return response.choices[0].message.content or ""
+        return ""
+    except Exception as e:
+        print(f"⚠️ Error generating LLM summary: {e}")
+        return ""
 
 
 def render_html(template_path: pathlib.Path, ctx: dict[str, object]) -> str:
