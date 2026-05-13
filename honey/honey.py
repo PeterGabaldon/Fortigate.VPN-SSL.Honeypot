@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import uuid
+import re
 
 app = Flask(__name__)
 
@@ -338,22 +339,51 @@ def ftnt_lato_regultar():
 })
     return response    
 
+def sanitize_log(value):
+    """Remove all whitespace to prevent log injection and field misalignment."""
+    if not value:
+        return ""
+    # Remove tabs, newlines, and spaces to ensure compatibility with whitespace-sensitive parsers
+    return "".join(value.split())
+
+def sanitize_ip(ip_str):
+    """Sanitize IP address string to allow only valid characters."""
+    if not ip_str:
+        return ""
+    # Allow digits, dots, colons (IPv6), and commas. No spaces.
+    return re.sub(r'[^0-9a-fA-F.:,]', '', ip_str)
+
 @app.route('/remote/logincheck', methods=['POST'])
 def login_check():
     # Parse raw body for credentials
     data = request.get_data(as_text=True)
     # Example format: "ajax=1&username=test&realm=&credential=test"
     params = dict(item.split('=', 1) for item in data.split('&') if '=' in item)
-    username = params.get('username',  '[BLANK USERNAME]')
+
+    username = params.get('username', '[BLANK USERNAME]')
     password = params.get('credential', '[BLANK PASSWORD]')
+
     if not username:
         username = '[BLANK USERNAME]'
-
     if not password:
         password = '[BLANK PASSWORD]'
 
+    username = sanitize_log(username)
+    password = sanitize_log(password)
+
     # Client IP
-    ip = request.headers.get('X-Forwarded-For')
+    # We prioritize X-Real-IP as it is set by Nginx to the actual remote address.
+    real_ip = request.headers.get('X-Real-IP')
+    if real_ip:
+        ip = sanitize_ip(real_ip)
+    else:
+        # Fallback to X-Forwarded-For if X-Real-IP is not present, then to remote_addr.
+        forwarded_for = request.headers.get('X-Forwarded-For')
+        if forwarded_for:
+            ip = sanitize_ip(forwarded_for)
+        else:
+            ip = request.remote_addr or 'UNKNOWN'
+
     # Log credentials to file
     log_dir = Path('/var/log/fortihoney')
     log_file = log_dir / 'creds.log'

@@ -15,27 +15,27 @@ mkdir -p "$REPORT_DIR" "$DB_DIR"
 # 1) ORIGINAL PARSING (unchanged) -------------------------------------------
 ###############################################################################
 # Tests by IP
-tests_by_ip=$(awk '{count[$3]++} END{for (ip in count) printf "{\"ip\":\"%s\",\"count\":%d}\n", ip, count[ip]}' "$LOG_CREDS" \
+tests_by_ip=$(awk -F'\t' '{count[$3]++} END{for (ip in count) printf "{\"ip\":\"%s\",\"count\":%d}\n", ip, count[ip]}' "$LOG_CREDS" \
   | sort -t: -k2 -nr \
   | jq -s '.')
 
 # Tests by user,pass,IP
-tests_by_user_pass_ip=$(awk '{count[$1","$2","$3]++} END{for (key in count) { split(key,a,","); printf "{\"user\":\"%s\",\"pass\":\"%s\",\"ip\":\"%s\",\"count\":%d}\n", a[1],a[2],a[3],count[key] }}' "$LOG_CREDS" \
+tests_by_user_pass_ip=$(awk -F'\t' '{count[$1","$2","$3]++} END{for (key in count) { split(key,a,","); printf "{\"user\":\"%s\",\"pass\":\"%s\",\"ip\":\"%s\",\"count\":%d}\n", a[1],a[2],a[3],count[key] }}' "$LOG_CREDS" \
   | sort -t: -k4 -nr \
   | jq -s '.')
 
 # Number of times each username was seen
-tests_by_user=$(awk '{count[$1]++} END{for (u in count) printf "{\"user\":\"%s\",\"count\":%d}\n", u, count[u]}' "$LOG_CREDS" \
+tests_by_user=$(awk -F'\t' '{count[$1]++} END{for (u in count) printf "{\"user\":\"%s\",\"count\":%d}\n", u, count[u]}' "$LOG_CREDS" \
   | sort -t: -k2 -nr \
   | jq -s '.')
 
 # Number of times each password was seen
-tests_by_password=$(awk '{count[$2]++} END{for (p in count) printf "{\"password\":\"%s\",\"count\":%d}\n", p, count[p]}' "$LOG_CREDS" \
+tests_by_password=$(awk -F'\t' '{count[$2]++} END{for (p in count) printf "{\"password\":\"%s\",\"count\":%d}\n", p, count[p]}' "$LOG_CREDS" \
   | sort -t: -k2 -nr \
   | jq -s '.')
 
 # Bad IPs list
-bad_ips_list=$(awk '{print $3, $4}' "$LOG_CREDS" | sort -u \
+bad_ips_list=$(awk -F'\t' '{print $3, $4}' "$LOG_CREDS" | sort -u \
   | awk '{printf "{\"ip\":\"%s\",\"first_seen\":\"%s\"}\n", $1, $2}' \
   | jq -s '.')
 
@@ -127,7 +127,9 @@ if [[ -s "$LOG_CREDS" ]]; then
     # Escape single quotes (SQL)
     user_sql=${user//"'"/''}
     pass_sql=${pass//"'"/''}
-    sqlite3 "$DB_FILE" "INSERT INTO honeypot_creds (user,password,ip,ts) VALUES ('$user_sql','$pass_sql','$ip','$ts');"
+    ip_sql=${ip//"'"/''}
+    ts_sql=${ts//"'"/''}
+    sqlite3 "$DB_FILE" "INSERT INTO honeypot_creds (user,password,ip,ts) VALUES ('$user_sql','$pass_sql','$ip_sql','$ts_sql');"
   done < "$LOG_CREDS"
   echo "✅ Imported creds.log → honeypot_creds"
 fi
