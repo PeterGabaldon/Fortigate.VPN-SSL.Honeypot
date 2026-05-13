@@ -6,6 +6,18 @@ import uuid
 
 app = Flask(__name__)
 
+@app.after_request
+def apply_security_headers(response):
+    response.headers.update({
+        'Connection': 'Keep-Alive',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
+        'X-XSS-Protection': '1; mode=block',
+        'X-Content-Type-Options': 'nosniff',
+        'Strict-Transport-Security': 'max-age=31536000',
+    })
+    return response
+
 def make_etag():
     return f'"{uuid.uuid4().hex}"'
 
@@ -23,13 +35,7 @@ def root():
     response.headers.update({
         'ETag': make_etag(),
         'Accept-Ranges': 'bytes',
-        'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000'
+        'Keep-Alive': 'timeout=10, max=100'
     })
     return response
 
@@ -41,13 +47,7 @@ def remote_login():
         # Redirect headers
         resp.headers.update({
             'Keep-Alive': 'timeout=10, max=99',
-            'Connection': 'Keep-Alive',
-            'Content-Type': 'text/plain',
-            'X-Frame-Options': 'SAMEORIGIN',
-            'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-            'X-XSS-Protection': '1; mode=block',
-            'X-Content-Type-Options': 'nosniff',
-            'Strict-Transport-Security': 'max-age=31536000'
+            'Content-Type': 'text/plain'
         })
         return resp
     # Serve login page for lang=en
@@ -124,13 +124,7 @@ def remote_login():
         'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT'),
         'X-UA-Compatible': 'requiresActiveX=true',
         'Keep-Alive': 'timeout=10, max=98',
-        'Connection': 'Keep-Alive',
         'Content-Type': 'text/html; charset=utf-8',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response
 
@@ -146,13 +140,7 @@ def login_js():
         'ETag': make_etag(),
         'Cache-Control': 'max-age=0, must-revalidate',
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
-        'Content-Type': 'application/x-javascript',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
+        'Content-Type': 'application/x-javascript'
     })
     return response
 
@@ -166,13 +154,7 @@ def brand_login_right():
         'ETag': make_etag(),
         'Cache-Control': 'max-age=0, must-revalidate',
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
-        'Content-Type': 'image/svg+xml',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
+        'Content-Type': 'image/svg+xml'
     })
     return response
 
@@ -186,13 +168,7 @@ def brand_login_left():
         'ETag': make_etag(),
         'Cache-Control': 'max-age=0, must-revalidate',
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
-        'Content-Type': 'image/svg+xml',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
+        'Content-Type': 'image/svg+xml'
     })
     return response
 
@@ -206,13 +182,7 @@ def sslvpn_portal_login():
         'ETag': make_etag(),
         'Cache-Control': 'max-age=0, must-revalidate',
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
-        'Content-Type': 'image/svg+xml',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
+        'Content-Type': 'image/svg+xml'
     })
     return response
 
@@ -226,13 +196,7 @@ def legacy_theme_setup_js():
         'ETag': make_etag(),
         'Cache-Control': 'max-age=0, must-revalidate',
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
-        'Content-Type': 'application/x-javascript',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
+        'Content-Type': 'application/x-javascript'
     })
     return response
 
@@ -246,13 +210,7 @@ def fgt_lang():
     # Match headers
     response.headers.update({
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
         'Content-Type': 'application/javascript',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
         'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     })
     return response
@@ -267,13 +225,7 @@ def styles_css():
         'ETag': make_etag(),
         'Cache-Control': 'max-age=0, must-revalidate',
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
-        'Content-Type': 'text/css',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
+        'Content-Type': 'text/css'
     })
     return response
 
@@ -288,13 +240,7 @@ def legacy_main_css():
         'ETag': make_etag(),
         'Cache-Control': 'max-age=0, must-revalidate',
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
-        'Content-Type': 'text/css',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
+        'Content-Type': 'text/css'
     })
     return response   
 
@@ -308,13 +254,7 @@ def ftnt_icons():
     # Set headers
     response.headers.update({
     'Accept-Ranges': 'bytes',
-    'Keep-Alive': 'timeout=10, max=100',
-    'Connection': 'Keep-Alive',
-    'X-Frame-Options': 'SAMEORIGIN',
-    'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-    'X-XSS-Protection': '1; mode=block',
-    'X-Content-Type-Options': 'nosniff',
-    'Strict-Transport-Security': 'max-age=31536000'
+    'Keep-Alive': 'timeout=10, max=100'
 })
     return response
 
@@ -328,13 +268,7 @@ def ftnt_lato_regultar():
     # Set headers
     response.headers.update({
     'Accept-Ranges': 'bytes',
-    'Keep-Alive': 'timeout=10, max=100',
-    'Connection': 'Keep-Alive',
-    'X-Frame-Options': 'SAMEORIGIN',
-    'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-    'X-XSS-Protection': '1; mode=block',
-    'X-Content-Type-Options': 'nosniff',
-    'Strict-Transport-Security': 'max-age=31536000'
+    'Keep-Alive': 'timeout=10, max=100'
 })
     return response    
 
@@ -375,14 +309,8 @@ def login_check():
         'ETag': make_etag(),
         'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT'),
         'Keep-Alive': 'timeout=10, max=100',
-        'Connection': 'Keep-Alive',
         'Content-Type': 'text/plain',
-        'Content-Length': str(len(body)),
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000'
+        'Content-Length': str(len(body))
     })
     return response
 
@@ -405,13 +333,7 @@ error was encountered while trying to use an ErrorDocument to handle the request
     response.headers.update({
         'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT'),
         'Keep-Alive': 'timeout=10, max=99',
-        'Connection': 'Keep-Alive',
         'Content-Type': 'text/html; charset=utf-8',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
         'Content-Length': str(len(html_body))
     })
     return response    
