@@ -220,10 +220,12 @@ def main():
     start_dt = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=args.hours)
     exfil_pwds = load_exfil()
     sections = query_db(start_dt.isoformat(), exfil_pwds)
+    llm_summary = generate_llm_summary(cfg, sections)
 
     # Context for Jinja2 template rendering
     ctx = {
         "subject": cfg["subject"],
+        "llm_summary": llm_summary,
         "data": sections,
         # Map table headings for convenience in default template
         "headers": {

@@ -3,154 +3,167 @@
 set -euo pipefail
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LOG_CREDS="$BASE_DIR/data/log/honey/creds.log"
-LOG_NGINX="$BASE_DIR/data/log/nginx/access.log"
-REPORT_DIR="$BASE_DIR/output_parsing"
-DB_DIR="$BASE_DIR/db"
-DB_FILE="$DB_DIR/honeypot.db"
+export LOG_CREDS="$BASE_DIR/data/log/honey/creds.log"
+export LOG_NGINX="$BASE_DIR/data/log/nginx/access.log"
+export REPORT_DIR="$BASE_DIR/output_parsing"
+export DB_DIR="$BASE_DIR/db"
+export DB_FILE="$DB_DIR/honeypot.db"
 
 mkdir -p "$REPORT_DIR" "$DB_DIR"
 
-###############################################################################
-# 1) ORIGINAL PARSING (unchanged) -------------------------------------------
-###############################################################################
-# Tests by IP
-tests_by_ip=$(awk '{count[$3]++} END{for (ip in count) printf "{\"ip\":\"%s\",\"count\":%d}\n", ip, count[ip]}' "$LOG_CREDS" \
-  | sort -t: -k2 -nr \
-  | jq -s '.')
+python3 << 'PYEOF'
+import sys
+import os
+import json
+import sqlite3
 
-# Tests by user,pass,IP
-tests_by_user_pass_ip=$(awk '{count[$1","$2","$3]++} END{for (key in count) { split(key,a,","); printf "{\"user\":\"%s\",\"pass\":\"%s\",\"ip\":\"%s\",\"count\":%d}\n", a[1],a[2],a[3],count[key] }}' "$LOG_CREDS" \
-  | sort -t: -k4 -nr \
-  | jq -s '.')
+LOG_CREDS = os.environ.get("LOG_CREDS")
+LOG_NGINX = os.environ.get("LOG_NGINX")
+REPORT_DIR = os.environ.get("REPORT_DIR")
+DB_FILE = os.environ.get("DB_FILE")
 
-# Number of times each username was seen
-tests_by_user=$(awk '{count[$1]++} END{for (u in count) printf "{\"user\":\"%s\",\"count\":%d}\n", u, count[u]}' "$LOG_CREDS" \
-  | sort -t: -k2 -nr \
-  | jq -s '.')
+conn = sqlite3.connect(DB_FILE)
+conn.row_factory = sqlite3.Row
+cursor = conn.cursor()
 
-# Number of times each password was seen
-tests_by_password=$(awk '{count[$2]++} END{for (p in count) printf "{\"password\":\"%s\",\"count\":%d}\n", p, count[p]}' "$LOG_CREDS" \
-  | sort -t: -k2 -nr \
-  | jq -s '.')
-
-# Bad IPs list
-bad_ips_list=$(awk '{print $3, $4}' "$LOG_CREDS" | sort -u \
-  | awk '{printf "{\"ip\":\"%s\",\"first_seen\":\"%s\"}\n", $1, $2}' \
-  | jq -s '.')
-
-# Symlink exploit IPs from Nginx JSON log
-symlink_list=$(jq -r 'select(.request_uri|startswith("/lang/custom/")) | {ip:.src_ip, time:.time_iso8601}' \
-                   "$LOG_NGINX" \
-                | jq -s '.')
-
-# 2) Human-readable output
-echo "Number of username/password test by IP"
-echo "-----------------------"
-echo "$tests_by_ip" | jq -r '.[] | "\(.count)\t\(.ip)"'
-echo
-
-echo "Number of username/password test by username,password,IP"
-echo "-----------------------"
-echo "$tests_by_user_pass_ip" | jq -r '.[] | "\(.count)\t\(.user),\(.pass),\(.ip)"'
-echo
-
-echo "Number of times each username was seen"
-echo "-----------------------"
-echo "$tests_by_user" | jq -r '.[] | "\(.count)\t\(.user)"'
-echo
-
-echo "Number of times each password was seen"
-echo "-----------------------"
-echo "$tests_by_password" | jq -r '.[] | "\(.count)\t\(.password)"'
-echo
-
-echo "Dumping IPs to bad_ips.txt"
-echo "-----------------------"
-echo "$bad_ips_list" | jq -r '.[] | "\(.ip)\t\(.first_seen)"' \
-  | tee output_parsing/bad_ips.txt
-echo
-
-echo "Dumping IPs exploiting Symlink Persistence Method to bad_ips_symlink.txt"
-echo "-----------------------"
-echo "$symlink_list" | jq -r '.[] | "\(.ip)\t\(.time)"' \
-  | tee output_parsing/bad_ips_symlink.txt
-echo
-
-# Build combined JSON (for legacy file consumers)
-jq -n \
-  --argjson tests_by_ip           "$tests_by_ip" \
-  --argjson tests_by_user_pass_ip "$tests_by_user_pass_ip" \
-  --argjson tests_by_user         "$tests_by_user" \
-  --argjson tests_by_password     "$tests_by_password" \
-  --argjson bad_ips               "$bad_ips_list" \
-  --argjson symlink_exploits      "$symlink_list" \
-  '{tests_by_ip: $tests_by_ip,
-    tests_by_user_pass_ip: $tests_by_user_pass_ip,
-    tests_by_user: $tests_by_user,
-    tests_by_password: $tests_by_password,
-    bad_ips: $bad_ips,
-    symlink_exploits: $symlink_exploits}' \
-  > "$REPORT_DIR/report.json"
-
-echo "✅ JSON report written to $REPORT_DIR/report.json"
-
-###############################################################################
-# 2) Create SQLITE --------------------------------------------------------
-###############################################################################
-sqlite3 "$DB_FILE" <<'SQL'
-BEGIN;
+# a. Create tables
+cursor.execute("""
 CREATE TABLE IF NOT EXISTS honeypot_creds (
   id       INTEGER PRIMARY KEY AUTOINCREMENT,
   user     TEXT,
   password TEXT,
   ip       TEXT,
-  ts       TEXT            -- ISO‑8601 string
-);
+  ts       TEXT
+)""")
+cursor.execute("""
 CREATE TABLE IF NOT EXISTS symlink_exploits (
   id   INTEGER PRIMARY KEY AUTOINCREMENT,
   ip   TEXT,
   path TEXT,
   ts   TEXT
-);
-COMMIT;
-SQL
+)""")
+conn.commit()
+print(f"🆗 SQLite schema ready ({DB_FILE})")
 
-echo "🆗 SQLite schema ready ($DB_FILE)"
+# b. Read and insert creds
+if os.path.exists(LOG_CREDS) and os.path.getsize(LOG_CREDS) > 0:
+    creds_data = []
+    with open(LOG_CREDS, "r", encoding="utf-8") as f:
+        for line in f:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) >= 4:
+                # user, pass, ip, ts
+                ip = parts[2]
+                ts = parts[3]
+                if ip and ts:
+                    creds_data.append((parts[0], parts[1], ip, ts))
+    if creds_data:
+        cursor.executemany("INSERT INTO honeypot_creds (user, password, ip, ts) VALUES (?, ?, ?, ?)", creds_data)
+        conn.commit()
+    print("✅ Imported creds.log → honeypot_creds")
 
-###############################################################################
-# 3) Ingest creds.log --------------------------------------------------------
-###############################################################################
-if [[ -s "$LOG_CREDS" ]]; then
-  while IFS=$'\t' read -r user pass ip ts; do
-    [[ -z "$ip" || -z "$ts" ]] && continue
-    # Escape single quotes (SQL)
-    user_sql=${user//"'"/''}
-    pass_sql=${pass//"'"/''}
-    sqlite3 "$DB_FILE" "INSERT INTO honeypot_creds (user,password,ip,ts) VALUES ('$user_sql','$pass_sql','$ip','$ts');"
-  done < "$LOG_CREDS"
-  echo "✅ Imported creds.log → honeypot_creds"
-fi
+# c. Read and insert nginx
+if os.path.exists(LOG_NGINX) and os.path.getsize(LOG_NGINX) > 0:
+    nginx_data = []
+    with open(LOG_NGINX, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line: continue
+            try:
+                doc = json.loads(line)
+                req_uri = doc.get("request_uri", "")
+                if req_uri.startswith("/lang/custom/"):
+                    ip = doc.get("src_ip")
+                    ts = doc.get("time_iso8601")
+                    if ip and ts:
+                        nginx_data.append((ip, req_uri, ts))
+            except json.JSONDecodeError:
+                pass
+    if nginx_data:
+        cursor.executemany("INSERT INTO symlink_exploits (ip, path, ts) VALUES (?, ?, ?)", nginx_data)
+        conn.commit()
+    print("✅ Imported nginx symlink attempts → symlink_exploits")
 
-###############################################################################
-# 4) Ingest symlink exploits from nginx JSON log ----------------------------
-###############################################################################
-if [[ -s "$LOG_NGINX" ]]; then
-  jq -c 'select(.request_uri|startswith("/lang/custom/")) | {ip:.src_ip, path:.request_uri, ts:.time_iso8601}' "$LOG_NGINX" |
-  while read -r line; do
-    ip=$(echo "$line" | jq -r '.ip')
-    path=$(echo "$line" | jq -r '.path')
-    ts=$(echo "$line" | jq -r '.ts')
-    sqlite3 "$DB_FILE" "INSERT INTO symlink_exploits (ip,path,ts) VALUES ('$ip','${path//"'"/''}','$ts');"
-  done
-  echo "✅ Imported nginx symlink attempts → symlink_exploits"
-fi
+# d. Execute SQL queries
+def dict_fetchall(cursor):
+    return [dict(row) for row in cursor.fetchall()]
 
-###############################################################################
-# 5) Truncate logs so they aren’t re‑processed next run ----------------------
-###############################################################################
+cursor.execute("SELECT ip, COUNT(*) as count FROM honeypot_creds GROUP BY ip ORDER BY count DESC")
+tests_by_ip = dict_fetchall(cursor)
+
+cursor.execute("SELECT user, password as pass, ip, COUNT(*) as count FROM honeypot_creds GROUP BY user, password, ip ORDER BY count DESC")
+tests_by_user_pass_ip = dict_fetchall(cursor)
+
+cursor.execute("SELECT user, COUNT(*) as count FROM honeypot_creds GROUP BY user ORDER BY count DESC")
+tests_by_user = dict_fetchall(cursor)
+
+cursor.execute("SELECT password, COUNT(*) as count FROM honeypot_creds GROUP BY password ORDER BY count DESC")
+tests_by_password = dict_fetchall(cursor)
+
+cursor.execute("SELECT ip, MIN(ts) as first_seen FROM honeypot_creds GROUP BY ip")
+bad_ips = dict_fetchall(cursor)
+
+cursor.execute("SELECT ip, ts as time FROM symlink_exploits")
+symlink_exploits = dict_fetchall(cursor)
+
+# f. Print human-readable summaries & write text files
+print("Number of username/password test by IP")
+print("-----------------------")
+for row in tests_by_ip:
+    print(f"{row['count']}\t{row['ip']}")
+print()
+
+print("Number of username/password test by username,password,IP")
+print("-----------------------")
+for row in tests_by_user_pass_ip:
+    print(f"{row['count']}\t{row['user']},{row['pass']},{row['ip']}")
+print()
+
+print("Number of times each username was seen")
+print("-----------------------")
+for row in tests_by_user:
+    print(f"{row['count']}\t{row['user']}")
+print()
+
+print("Number of times each password was seen")
+print("-----------------------")
+for row in tests_by_password:
+    print(f"{row['count']}\t{row['password']}")
+print()
+
+print("Dumping IPs to bad_ips.txt")
+print("-----------------------")
+with open(os.path.join(REPORT_DIR, "bad_ips.txt"), "w", encoding="utf-8") as f:
+    for row in bad_ips:
+        line_out = f"{row['ip']}\t{row['first_seen']}"
+        print(line_out)
+        f.write(line_out + "\n")
+print()
+
+print("Dumping IPs exploiting Symlink Persistence Method to bad_ips_symlink.txt")
+print("-----------------------")
+with open(os.path.join(REPORT_DIR, "bad_ips_symlink.txt"), "w", encoding="utf-8") as f:
+    for row in symlink_exploits:
+        line_out = f"{row['ip']}\t{row['time']}"
+        print(line_out)
+        f.write(line_out + "\n")
+print()
+
+# e. Dump to report.json
+report = {
+    "tests_by_ip": tests_by_ip,
+    "tests_by_user_pass_ip": tests_by_user_pass_ip,
+    "tests_by_user": tests_by_user,
+    "tests_by_password": tests_by_password,
+    "bad_ips": bad_ips,
+    "symlink_exploits": symlink_exploits
+}
+with open(os.path.join(REPORT_DIR, "report.json"), "w", encoding="utf-8") as f:
+    json.dump(report, f, indent=2)
+print(f"✅ JSON report written to {REPORT_DIR}/report.json")
+PYEOF
+
 : > "$LOG_CREDS"
 : > "$LOG_NGINX"
 
 echo "🗑️  Logs truncated – parse.sh complete."
-

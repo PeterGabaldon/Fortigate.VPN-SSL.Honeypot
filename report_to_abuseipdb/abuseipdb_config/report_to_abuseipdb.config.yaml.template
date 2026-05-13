@@ -1,0 +1,5 @@
+abuseipdb_api_key: "<YOUR ABUSEIPDB API KEY>"
+tag: "FortiGate VPN-SSL Honeypot"
+comment: "IP {ip} was seen bruteforcing FortiGate VPN-SSL at {seen} 🛡️"
+categories: "18,21"
+hours: 24
