@@ -141,7 +141,7 @@ EOF
 sudo systemctl enable --now fortihoney-parse.timer
 ```
 
-> **ACL Fix**: the logs are written as `root` (inside the container). Allow the service user write access in order to the parser script (parse.sh) to be able to clear the logs:
+> **ACL Fix**: the logs are written as `root` (inside the container). Allow the service user write access in order to the parser script (parse.py) to be able to clear the logs:
 >
 > ```bash
 > sudo setfacl -m u:fortihoney:rw data/log/honey/creds.log data/log/nginx/access.log
@@ -200,6 +200,36 @@ pulse:
 
 honeypot:
   ip_file: "./honeypot_bad_ips.txt"
+```
+
+#### Reporting to AbuseIPDB
+
+```bash
+$ cat report_to_abuseipdb/abuseipdb_config/report_to_abuseipdb.config.yaml.template
+abuseipdb_api_key: "<YOUR ABUSEIPDB API KEY>"
+tag: "FortiGate VPN-SSL Honeypot"
+comment: "IP {ip} was seen bruteforcing FortiGate VPN-SSL at {seen} 🛡️"
+categories: "18,21"
+hours: 24
+```
+
+#### Check Credentials in LDAP
+
+```bash
+$ cat report_to_ldap/ldap_config/ldap_config.yaml.template
+ldap:
+  server: "ldap://dc01.example.local"
+  domain: "example.local"
+alert_email:
+  subject: "🚨 HIGH ALERT: Valid Credentials Compromised!"
+  from: "honeypot@example.com"
+  to:
+    - soc@example.com
+  smtp_host: "smtp.example.com"
+  smtp_port: 587
+  smtp_user: "honeypot@example.com"
+  smtp_pass: "secret"
+  use_ssl: false
 ```
 
 The following examples uses absolute path to venv, alternatively use `$ . .venv/bin/activate`.
@@ -326,6 +356,20 @@ Please consider supporting its development — every coffee fuels more open-sour
 ---
 [![X](https://img.shields.io/badge/X-@PedroGabaldon-1DA1F2?logo=x)](https://x.com/PedroGabaldon)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Pedro%20Gabaldon%20Juliá-blue?logo=linkedin)](https://www.linkedin.com/in/pedro-gabaldon-julia/)
+
+
+
+
+fee&style=for-the-badge)](https://www.buymeacoffee.com/petergabaldon)
+
+---
+[![X](https://img.shields.io/badge/X-@PedroGabaldon-1DA1F2?logo=x)](https://x.com/PedroGabaldon)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Pedro%20Gabaldon%20Juliá-blue?logo=linkedin)](https://www.linkedin.com/in/pedro-gabaldon-julia/)
+
+
+
+
+)
 
 
 
