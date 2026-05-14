@@ -184,8 +184,7 @@ def generate_llm_summary(cfg: dict, sections: dict) -> str:
     )
 
     try:
-        client = OpenAI(
-            base_url="https://openrouter.ai/api/v1",
+        client = OpenRouter(
             api_key=api_key,
         )
 
@@ -297,6 +296,11 @@ def main():
     html_body = render_html(args.template, ctx)
     send_email(cfg, html_body)
     print("✅ E‑mail report sent (last", args.hours, "h)")
+
+
+if __name__ == "__main__":
+    main()
+rgs.hours, "h)")
 
 
 if __name__ == "__main__":
