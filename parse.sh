@@ -20,7 +20,7 @@ tests_by_ip=$(awk -F'\t' '{count[$3]++} END{for (ip in count) printf "{\"ip\":\"
   | jq -s '.')
 
 # Tests by user,pass,IP
-tests_by_user_pass_ip=$(awk -F'\t' '{count[$1","$2","$3]++} END{for (key in count) { split(key,a,","); printf "{\"user\":\"%s\",\"pass\":\"%s\",\"ip\":\"%s\",\"count\":%d}\n", a[1],a[2],a[3],count[key] }}' "$LOG_CREDS" \
+tests_by_user_pass_ip=$(awk -F'\t' '{count[$1"\t"$2"\t"$3]++} END{for (key in count) { split(key,a,"\t"); printf "{\"user\":\"%s\",\"pass\":\"%s\",\"ip\":\"%s\",\"count\":%d}\n", a[1],a[2],a[3],count[key] }}' "$LOG_CREDS" \
   | sort -t: -k4 -nr \
   | jq -s '.')
 
@@ -122,15 +122,31 @@ echo "🆗 SQLite schema ready ($DB_FILE)"
 # 3) Ingest creds.log --------------------------------------------------------
 ###############################################################################
 if [[ -s "$LOG_CREDS" ]]; then
-  while IFS=$'\t' read -r user pass ip ts; do
-    [[ -z "$ip" || -z "$ts" ]] && continue
-    # Escape single quotes (SQL)
-    user_sql=${user//"'"/''}
-    pass_sql=${pass//"'"/''}
-    ip_sql=${ip//"'"/''}
-    ts_sql=${ts//"'"/''}
-    sqlite3 "$DB_FILE" "INSERT INTO honeypot_creds (user,password,ip,ts) VALUES ('$user_sql','$pass_sql','$ip_sql','$ts_sql');"
-  done < "$LOG_CREDS"
+  # Use Python for safe parameterized insertion into SQLite
+  python3 <<PYEOF
+import sqlite3
+import os
+import sys
+
+db_file = os.environ.get('DB_FILE', "$DB_FILE")
+log_file = os.environ.get('LOG_CREDS', "$LOG_CREDS")
+
+if not os.path.exists(log_file):
+    sys.exit(0)
+
+conn = sqlite3.connect(db_file)
+cursor = conn.cursor()
+
+with open(log_file, 'r', encoding='utf-8') as f:
+    for line in f:
+        parts = line.strip('\n').split('\t')
+        if len(parts) >= 4:
+            # user, pass, ip, ts
+            cursor.execute("INSERT INTO honeypot_creds (user, password, ip, ts) VALUES (?, ?, ?, ?)",
+                           (parts[0], parts[1], parts[2], parts[3]))
+conn.commit()
+conn.close()
+PYEOF
   echo "✅ Imported creds.log → honeypot_creds"
 fi
 
@@ -139,12 +155,27 @@ fi
 ###############################################################################
 if [[ -s "$LOG_NGINX" ]]; then
   jq -c 'select(.request_uri|startswith("/lang/custom/")) | {ip:.src_ip, path:.request_uri, ts:.time_iso8601}' "$LOG_NGINX" |
-  while read -r line; do
-    ip=$(echo "$line" | jq -r '.ip')
-    path=$(echo "$line" | jq -r '.path')
-    ts=$(echo "$line" | jq -r '.ts')
-    sqlite3 "$DB_FILE" "INSERT INTO symlink_exploits (ip,path,ts) VALUES ('$ip','${path//"'"/''}','$ts');"
-  done
+  python3 <<PYEOF
+import sqlite3
+import os
+import sys
+import json
+
+db_file = os.environ.get('DB_FILE', "$DB_FILE")
+
+conn = sqlite3.connect(db_file)
+cursor = conn.cursor()
+
+for line in sys.stdin:
+    try:
+        doc = json.loads(line)
+        cursor.execute("INSERT INTO symlink_exploits (ip, path, ts) VALUES (?, ?, ?)",
+                       (doc.get('ip'), doc.get('path'), doc.get('ts')))
+    except Exception:
+        continue
+conn.commit()
+conn.close()
+PYEOF
   echo "✅ Imported nginx symlink attempts → symlink_exploits"
 fi
 

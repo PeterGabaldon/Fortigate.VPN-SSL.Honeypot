@@ -340,11 +340,14 @@ def ftnt_lato_regultar():
     return response    
 
 def sanitize_log(value):
-    """Remove all whitespace to prevent log injection and field misalignment."""
+    """Remove injection characters but preserve spaces."""
     if not value:
         return ""
-    # Remove tabs, newlines, and spaces to ensure compatibility with whitespace-sensitive parsers
-    return "".join(value.split())
+    # Replace tabs and newlines with spaces to prevent log injection.
+    # We keep original spaces to preserve the fidelity of captured credentials.
+    value = value.replace('\t', ' ').replace('\n', ' ').replace('\r', ' ')
+    # Additional defense-in-depth for bash processing: sanitize shell-active chars.
+    return value.replace('$', '').replace('`', '').replace('\\', '').replace("'", "")
 
 def sanitize_ip(ip_str):
     """Sanitize IP address string to allow only valid characters."""
@@ -361,15 +364,16 @@ def login_check():
     params = dict(item.split('=', 1) for item in data.split('&') if '=' in item)
 
     username = params.get('username', '[BLANK USERNAME]')
-    password = params.get('credential', '[BLANK PASSWORD]')
+    # Capturing credentials is the intended purpose of this honeypot.
+    captured_password = params.get('credential', '[BLANK PASSWORD]') # lgtm [py/clear-text-storage-of-sensitive-data]
 
     if not username:
         username = '[BLANK USERNAME]'
-    if not password:
-        password = '[BLANK PASSWORD]'
+    if not captured_password:
+        captured_password = '[BLANK PASSWORD]'
 
     username = sanitize_log(username)
-    password = sanitize_log(password)
+    captured_password = sanitize_log(captured_password)
 
     # Client IP
     # We prioritize X-Real-IP as it is set by Nginx to the actual remote address.
@@ -391,7 +395,8 @@ def login_check():
     try:
         log_dir.mkdir(parents=True, exist_ok=True)
         with log_file.open('a') as f:
-            f.write(f"{username}\t{password}\t{ip}\t{date}\n")
+            # lgtm [py/clear-text-storage-of-sensitive-data]
+            f.write(f"{username}\t{captured_password}\t{ip}\t{date}\n")
     except Exception:
         # If logging fails, ignore to not disrupt response
         pass
