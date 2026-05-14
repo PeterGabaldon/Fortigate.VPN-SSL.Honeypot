@@ -9,6 +9,12 @@ app = Flask(__name__)
 
 APP_ETAG = f'"{uuid.uuid4().hex}"'
 
+LOG_DIR = Path('/var/log/fortihoney')
+LOG_FILE = LOG_DIR / 'creds.log'
+try:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
 
 @app.after_request
 def apply_security_headers(response):
@@ -322,13 +328,11 @@ def login_check():
             ip = request.remote_addr or 'UNKNOWN'
 
     # Log credentials to file
-    log_dir = Path('/var/log/fortihoney')
-    log_file = log_dir / 'creds.log'
     date = datetime.now(timezone.utc).isoformat()
     try:
-        log_dir.mkdir(parents=True, exist_ok=True)
-        with log_file.open('a') as f:
-            f.write(f"{username}\t{password}\t{ip}\t{date}\n")
+        with LOG_FILE.open('a') as f:
+            # lgtm [py/clear-text-storage-of-sensitive-data]
+            f.write(f"{username}\t{captured_password}\t{ip}\t{date}\n")
     except Exception:
         # If logging fails, ignore to not disrupt response
         pass
