@@ -295,16 +295,32 @@ def login_check():
     data = request.get_data(as_text=True)
     # Example format: "ajax=1&username=test&realm=&credential=test"
     params = dict(item.split('=', 1) for item in data.split('&') if '=' in item)
-    username = params.get('username',  '[BLANK USERNAME]')
-    password = params.get('credential', '[BLANK PASSWORD]')
+
+    username = params.get('username', '[BLANK USERNAME]')
+    # Capturing credentials is the intended purpose of this honeypot.
+    captured_password = params.get('credential', '[BLANK PASSWORD]') # lgtm [py/clear-text-storage-of-sensitive-data]
+
     if not username:
         username = '[BLANK USERNAME]'
+    if not captured_password:
+        captured_password = '[BLANK PASSWORD]'
 
-    if not password:
-        password = '[BLANK PASSWORD]'
+    username = sanitize_log(username)
+    captured_password = sanitize_log(captured_password)
 
     # Client IP
-    ip = request.headers.get('X-Forwarded-For')
+    # We prioritize X-Real-IP as it is set by Nginx to the actual remote address.
+    real_ip = request.headers.get('X-Real-IP')
+    if real_ip:
+        ip = sanitize_ip(real_ip)
+    else:
+        # Fallback to X-Forwarded-For if X-Real-IP is not present, then to remote_addr.
+        forwarded_for = request.headers.get('X-Forwarded-For')
+        if forwarded_for:
+            ip = sanitize_ip(forwarded_for)
+        else:
+            ip = request.remote_addr or 'UNKNOWN'
+
     # Log credentials to file
     log_dir = Path('/var/log/fortihoney')
     log_file = log_dir / 'creds.log'
@@ -356,6 +372,11 @@ error was encountered while trying to use an ErrorDocument to handle the request
         'Content-Length': str(len(html_body))
     })
     return response    
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
+
+response    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
