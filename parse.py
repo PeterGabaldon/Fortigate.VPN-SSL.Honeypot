@@ -1,26 +1,18 @@
-#!/usr/bin/env bash
-
-set -euo pipefail
-
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-export LOG_CREDS="$BASE_DIR/data/log/honey/creds.log"
-export LOG_NGINX="$BASE_DIR/data/log/nginx/access.log"
-export REPORT_DIR="$BASE_DIR/output_parsing"
-export DB_DIR="$BASE_DIR/db"
-export DB_FILE="$DB_DIR/honeypot.db"
-
-mkdir -p "$REPORT_DIR" "$DB_DIR"
-
-python3 << 'PYEOF'
+#!/usr/bin/env python3
 import sys
 import os
 import json
 import sqlite3
 
-LOG_CREDS = os.environ.get("LOG_CREDS")
-LOG_NGINX = os.environ.get("LOG_NGINX")
-REPORT_DIR = os.environ.get("REPORT_DIR")
-DB_FILE = os.environ.get("DB_FILE")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOG_CREDS = os.environ.get("LOG_CREDS", os.path.join(BASE_DIR, "data", "log", "honey", "creds.log"))
+LOG_NGINX = os.environ.get("LOG_NGINX", os.path.join(BASE_DIR, "data", "log", "nginx", "access.log"))
+REPORT_DIR = os.environ.get("REPORT_DIR", os.path.join(BASE_DIR, "output_parsing"))
+DB_DIR = os.environ.get("DB_DIR", os.path.join(BASE_DIR, "db"))
+DB_FILE = os.environ.get("DB_FILE", os.path.join(DB_DIR, "honeypot.db"))
+
+os.makedirs(REPORT_DIR, exist_ok=True)
+os.makedirs(DB_DIR, exist_ok=True)
 
 conn = sqlite3.connect(DB_FILE)
 conn.row_factory = sqlite3.Row
@@ -161,9 +153,9 @@ report = {
 with open(os.path.join(REPORT_DIR, "report.json"), "w", encoding="utf-8") as f:
     json.dump(report, f, indent=2)
 print(f"✅ JSON report written to {REPORT_DIR}/report.json")
-PYEOF
 
-: > "$LOG_CREDS"
-: > "$LOG_NGINX"
+# Truncate logs
+open(LOG_CREDS, 'w').close()
+open(LOG_NGINX, 'w').close()
 
-echo "🗑️  Logs truncated – parse.sh complete."
+print("🗑️  Logs truncated – parse.py complete.")
