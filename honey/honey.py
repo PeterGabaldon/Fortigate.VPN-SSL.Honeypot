@@ -2,6 +2,7 @@ from flask import Flask, Response, request, redirect, send_from_directory
 from datetime import datetime, timezone
 from pathlib import Path
 import html
+import re
 
 import uuid
 
@@ -293,7 +294,20 @@ def ftnt_lato_regultar():
     'Keep-Alive': 'timeout=10, max=100',
     'Connection': 'Keep-Alive',
 })
-    return response    
+    return response
+
+def sanitize_log(value):
+    """Escape whitespace characters to prevent log injection while preserving fidelity."""
+    if not value:
+        return ""
+    value = value.replace('\n', '\\n').replace('\t', '\\t').replace('\r', '\\r')
+    return value.replace('$', '').replace('`', '').replace('\\\\', '\\').replace("'", "")
+
+def sanitize_ip(ip_str):
+    """Sanitize IP address string to allow only valid characters."""
+    if not ip_str:
+        return ""
+    return re.sub(r'[^0-9a-fA-F.:,]', '', ip_str)
 
 @app.route('/remote/logincheck', methods=['POST'])
 def login_check():
@@ -320,13 +334,8 @@ def login_check():
     if real_ip:
         ip = sanitize_ip(real_ip)
     else:
-        # Fallback to X-Forwarded-For if X-Real-IP is not present, then to remote_addr.
-        forwarded_for = request.headers.get('X-Forwarded-For')
-        if forwarded_for:
-            ip = sanitize_ip(forwarded_for)
-        else:
-            ip = request.remote_addr or 'UNKNOWN'
-
+        # Fallback to remote_addr per requirements
+        ip = request.remote_addr or 'UNKNOWN'
     # Log credentials to file
     date = datetime.now(timezone.utc).isoformat()
     try:
@@ -376,11 +385,6 @@ error was encountered while trying to use an ErrorDocument to handle the request
         'Content-Length': str(len(html_body))
     })
     return response    
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
-
-response    
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)

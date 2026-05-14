@@ -25,7 +25,7 @@ import json
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from openai import OpenAI
+from openrouter import OpenRouter
 
 # ---------------------------------------------------------------------------
 # Paths / template
@@ -296,11 +296,6 @@ def main():
     html_body = render_html(args.template, ctx)
     send_email(cfg, html_body)
     print("✅ E‑mail report sent (last", args.hours, "h)")
-
-
-if __name__ == "__main__":
-    main()
-rgs.hours, "h)")
 
 
 if __name__ == "__main__":
