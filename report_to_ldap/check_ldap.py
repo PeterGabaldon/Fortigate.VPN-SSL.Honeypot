@@ -85,6 +85,9 @@ def main():
             try:
                 conn_ldap = Connection(server, user=bind_user, password=password, auto_bind=True)
                 print(f"Bind succeeded for {bind_user}")
+                # Save to database for email report
+                cursor.execute("INSERT INTO valid_ldap_creds (user, password, ts) VALUES (?, ?, ?)", (user, password, ts))
+                conn_db.commit()
                 # Send email
                 send_alert(config, user, password)
                 conn_ldap.unbind()
@@ -103,6 +106,9 @@ def main():
     finally:
         if 'conn_db' in locals() and conn_db:
             conn_db.close()
+
+if __name__ == "__main__":
+    main()    conn_db.close()
 
 if __name__ == "__main__":
     main()
