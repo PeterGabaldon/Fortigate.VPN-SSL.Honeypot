@@ -299,7 +299,8 @@ def main():
             ("🔑 Attempts by Password", "tests_by_password"),
             ("⚠️ Symlink Exploit Attempts", "symlink_exploits"),
             ("⛔ Bad IPs", "bad_ips"),
-            ("💥 Exfiltrated Credentials", "exfil_creds")
+            ("💥 Exfiltrated Credentials", "exfil_creds"),
+            ("🚨 Compromised LDAP Credentials", "ldap_compromised")
         ],
         # mapping for default template to iterate over values conveniently
         "col_map": {
