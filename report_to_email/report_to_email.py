@@ -40,7 +40,7 @@ DEFAULT_TEMPLATE = BASE_DIR / "email_template.html.jinja"
 def ensure_template(path: pathlib.Path):
     if path.exists():
         return
-    path.write_text("""<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:Segoe UI,system-ui,sans-serif;background:#f9fafb;color:#111827;margin:0;padding:1rem}h1{text-align:center}h2{color:#2563eb}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{padding:.4rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left}th{background:#f3f4f6}</style></head><body><h1>{{ subject }}</h1>{% if llm_summary %}<h2>LLM Summary</h2><p style="white-space: pre-wrap;">{{ llm_summary }}</p>{% endif %}{% for title,key in sections %}<h2>{{ title }}</h2><table><thead><tr>{% for col in headers[key] %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>{% for row in data[key] %}<tr>{% for col in headers[key] %}<td>{{ row[col_map[key][loop.index0]] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endfor %}</body></html>""", encoding="utf-8")
+    path.write_text("""<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:Segoe UI,system-ui,sans-serif;background:#f9fafb;color:#111827;margin:0;padding:1rem}h1{text-align:center}h2{color:#2563eb}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{padding:.4rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left;white-space:pre-wrap}th{background:#f3f4f6}</style></head><body><h1>{{ subject }}</h1>{% for title,key in sections %}<h2>{{ title }}</h2><table><thead><tr>{% for col in headers[key] %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>{% for row in data[key] %}<tr>{% for col in headers[key] %}<td>{{ row[col_map[key][loop.index0]] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endfor %}</body></html>""", encoding="utf-8")
 
 
 def load_yaml(path: pathlib.Path):
@@ -293,6 +293,7 @@ def main():
             "ldap_compromised": ["user", "password", "timestamp"]
         },
         "sections": [
+            ("🤖 LLM Summary", "llm_summary"),
             ("🌐 Attempts by IP", "tests_by_ip"),
             ("🧑‍💻 Attempts by User / Pass / IP", "tests_by_user_pass_ip"),
             ("👤 Attempts by User", "tests_by_user"),
@@ -304,6 +305,7 @@ def main():
         ],
         # mapping for default template to iterate over values conveniently
         "col_map": {
+            "llm_summary": ["summary"],
             "tests_by_ip": ["ip", "count", "ts"],
             "tests_by_user_pass_ip": ["user", "pass", "ip", "count"],
             "tests_by_user": ["user", "count"],
