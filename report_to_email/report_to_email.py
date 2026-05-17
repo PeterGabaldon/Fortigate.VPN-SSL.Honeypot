@@ -203,21 +203,26 @@ def generate_llm_summary(cfg: dict, sections: dict) -> str:
     )
 
     try:
-        client = OpenRouter(
-            api_key=api_key,
-        )
-
-        user_content = json.dumps(sections, indent=2, default=str)
-        response = client.chat.send(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content}
-            ],
-        )
-
-        if response.choices:
-            return response.choices[0].message.content or ""
+        with OpenRouter(api_key=api_key) as client:
+            user_content = json.dumps(sections, indent=2, default=str)
+            response = client.chat.send(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content}
+                ],
+            )
+            
+            # The SDK might return an event stream or a response object directly
+            if hasattr(response, 'choices') and response.choices:
+                return response.choices[0].message.content or ""
+            
+            # Fallback for event stream context managers
+            if hasattr(response, '__enter__'):
+                with response as event_stream:
+                    for event in event_stream:
+                        if hasattr(event, 'choices') and event.choices:
+                            return event.choices[0].message.content or ""
         return ""
     except Exception as e:
         print(f"⚠️ Error generating LLM summary: {e}")
