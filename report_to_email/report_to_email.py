@@ -208,7 +208,7 @@ def generate_llm_summary(cfg: dict, sections: dict) -> str:
         )
 
         user_content = json.dumps(sections, indent=2, default=str)
-        response = client.chat.completions.create(
+        response = client.chat.send(
             model=model,
             messages=[
                 {"role": "system", "content": system_prompt},
