@@ -127,7 +127,9 @@ if [[ -s "$LOG_CREDS" ]]; then
     # Escape single quotes (SQL)
     user_sql=${user//"'"/''}
     pass_sql=${pass//"'"/''}
-    sqlite3 "$DB_FILE" "INSERT INTO honeypot_creds (user,password,ip,ts) VALUES ('$user_sql','$pass_sql','$ip','$ts');"
+    ip_sql=${ip//"'"/''}
+    ts_sql=${ts//"'"/''}
+    sqlite3 "$DB_FILE" "INSERT INTO honeypot_creds (user,password,ip,ts) VALUES ('$user_sql','$pass_sql','$ip_sql','$ts_sql');"
   done < "$LOG_CREDS"
   echo "✅ Imported creds.log → honeypot_creds"
 fi
@@ -141,7 +143,9 @@ if [[ -s "$LOG_NGINX" ]]; then
     ip=$(echo "$line" | jq -r '.ip')
     path=$(echo "$line" | jq -r '.path')
     ts=$(echo "$line" | jq -r '.ts')
-    sqlite3 "$DB_FILE" "INSERT INTO symlink_exploits (ip,path,ts) VALUES ('$ip','${path//"'"/''}','$ts');"
+    ip_sql=${ip//"'"/''}
+    ts_sql=${ts//"'"/''}
+    sqlite3 "$DB_FILE" "INSERT INTO symlink_exploits (ip,path,ts) VALUES ('$ip_sql','${path//"'"/''}','$ts_sql');"
   done
   echo "✅ Imported nginx symlink attempts → symlink_exploits"
 fi
