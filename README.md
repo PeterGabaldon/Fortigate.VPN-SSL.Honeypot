@@ -216,7 +216,7 @@ hours: 24
 #### Check Credentials in LDAP
 
 ```bash
-$ cat report_to_ldap/ldap_config/ldap_config.yaml.template
+$ cat check_in_ldap/ldap_config/ldap_config.yaml.template
 ldap:
   server: "ldap://dc01.example.local"
   domain: "example.local"
@@ -297,7 +297,7 @@ $ python /home/fortihoney/Fortigate.VPN-SSL.Honeypot/report_to_email/.venv/bin/p
 $ python /home/fortihoney/Fortigate.VPN-SSL.Honeypot/report_to_abuseipdb/.venv/bin/python3 report_to_abuseipdb/report_to_abuseipdb.py -c report_to_abuseipdb/abuseipdb_config/report_to_abuseipdb.config.yaml
 
 # LDAP Check
-$ python /home/fortihoney/Fortigate.VPN-SSL.Honeypot/report_to_ldap/.venv/bin/python3 report_to_ldap/check_ldap.py
+$ python /home/fortihoney/Fortigate.VPN-SSL.Honeypot/check_in_ldap/.venv/bin/python3 check_in_ldap/check_ldap.py
 ```
 
 ---
@@ -362,3 +362,4 @@ Please consider supporting its development — every coffee fuels more open-sour
 ---
 [![X](https://img.shields.io/badge/X-@PedroGabaldon-1DA1F2?logo=x)](https://x.com/PedroGabaldon)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Pedro%20Gabaldon%20Juliá-blue?logo=linkedin)](https://www.linkedin.com/in/pedro-gabaldon-julia/)
+

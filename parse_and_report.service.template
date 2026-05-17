@@ -10,5 +10,5 @@ Type=oneshot
 ExecStart=/PATH/parse.py
 ExecStart=-/PATH/report_to_otx/.venv/bin/python3 -c CONFIG
 ExecStart=-/PATH/report_to_abuseipdb/.venv/bin/python3 /PATH/report_to_abuseipdb/report_to_abuseipdb.py -c /PATH/report_to_abuseipdb/abuseipdb_config/report_to_abuseipdb.config.yaml
-ExecStart=-/PATH/report_to_ldap/.venv/bin/python3 /PATH/report_to_ldap/check_ldap.py
+ExecStart=-/PATH/check_in_ldap/.venv/bin/python3 /PATH/check_in_ldap/check_ldap.py
 
