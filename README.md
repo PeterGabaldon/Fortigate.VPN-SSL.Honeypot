@@ -81,7 +81,7 @@ $ bash gen-dhparam.sh 2048
 $ docker compose up # 🔥 boots nginx & honeypot
 
 # 4. Parse logs & load SQLite
-$ /bin/bash ./parse.sh   # ➜ data/db/honeypot.db gets populated
+$ ./parse.py   # ➜ data/db/honeypot.db gets populated
 ```
 
 *The portal will go live on 10443 (host network) by default.*
