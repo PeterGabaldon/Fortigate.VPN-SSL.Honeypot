@@ -154,7 +154,7 @@ def main():
     #    e.g. state_file == "./report_to_otx/otx_config/state_FortiGate_VPN_SSL_Honeypot.txt"
 
     # 3) Instantiate OTX client
-    otx = OTXv2(cfg['otx']['api_key'])
+    otx = OTXv2(cfg['otx_api_key'])
 
     # 4) Determine which IPs to report (only those after state_file timestamp)
     last_dt = load_last_reported(state_file)
