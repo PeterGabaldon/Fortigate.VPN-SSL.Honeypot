@@ -2,12 +2,15 @@ import sqlite3
 import yaml
 import os
 import smtplib
-from email.message import EmailMessage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from ldap3 import Server, Connection, core
+from jinja2 import Environment, FileSystemLoader
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "ldap_config", "ldap_config.yaml")
 STATE_FILE = os.path.join(os.path.dirname(__file__), "ldap_config", "state_ldap.txt")
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "db", "honeypot.db")
+TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "alert_template.html.jinja")
 
 def load_config():
     if not os.path.exists(CONFIG_PATH):
@@ -29,13 +32,23 @@ def save_last_timestamp(ts):
     with open(STATE_FILE, "w") as f:
         f.write(str(ts))
 
+def render_html_alert(user, password):
+    env = Environment(loader=FileSystemLoader(os.path.dirname(TEMPLATE_PATH)))
+    template = env.get_template(os.path.basename(TEMPLATE_PATH))
+    return template.render(user=user, password=password)
+
 def send_alert(config, user, password):
     email_cfg = config['alert_email']
-    msg = EmailMessage()
+    msg = MIMEMultipart("alternative")
     msg['Subject'] = email_cfg['subject']
     msg['From'] = email_cfg['from']
     msg['To'] = ", ".join(email_cfg['to'])
-    msg.set_content(f"Alert! Valid credentials compromised.\n\nUser: {user}\nPassword: {password}\n")
+    
+    text_content = f"Alert! Valid credentials compromised.\n\nUser: {user}\nPassword: {password}\n"
+    html_content = render_html_alert(user, password)
+    
+    msg.attach(MIMEText(text_content, "plain", "utf-8"))
+    msg.attach(MIMEText(html_content, "html", "utf-8"))
 
     try:
         if email_cfg.get('use_ssl'):
