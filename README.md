@@ -147,7 +147,7 @@ sudo systemctl enable --now fortihoney-parse.timer
 > sudo setfacl -m u:fortihoney:rw data/log/honey/creds.log data/log/nginx/access.log
 > ```
 
-### 4.3 🌐 Report to VirusTotal / OTX / Email 
+### 4.3 🌐 Report to VirusTotal / OTX / Email / AbuseIPDB / LDAP
 
 The reporting scripts use a yaml file for the configuration. Here are the templates that can be found in their corresponding directories.
 
