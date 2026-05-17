@@ -289,7 +289,8 @@ def main():
             "tests_by_password": ["pass", "count"],
             "symlink_exploits": ["IP", "path", "count", "Timestamp"],
             "bad_ips": ["IP"],
-            "exfil_creds": ["user", "password", "IP", "timestamp"]
+            "exfil_creds": ["user", "password", "IP", "timestamp"],
+            "ldap_compromised": ["user", "password", "timestamp"]
         },
         "sections": [
             ("🌐 Attempts by IP", "tests_by_ip"),
@@ -308,7 +309,8 @@ def main():
             "tests_by_password": ["password", "count"],
             "symlink_exploits": ["ip", "path", "count", "ts"],
             "bad_ips": ["ip"],
-            "exfil_creds": ["user", "pass", "ip", "ts"]
+            "exfil_creds": ["user", "pass", "ip", "ts"],
+            "ldap_compromised": ["user", "pass", "ts"]
         }
     }
 
