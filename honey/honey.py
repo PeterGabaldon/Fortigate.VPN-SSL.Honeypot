@@ -1,13 +1,36 @@
 from flask import Flask, Response, request, redirect, send_from_directory
 from datetime import datetime, timezone
 from pathlib import Path
+import html
+import re
 
 import uuid
 
 app = Flask(__name__)
 
+APP_ETAG = f'"{uuid.uuid4().hex}"'
+
+LOG_DIR = Path('/var/log/fortihoney')
+LOG_FILE = LOG_DIR / 'creds.log'
+try:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
+@app.after_request
+def apply_security_headers(response):
+    response.headers.update({
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
+        'X-XSS-Protection': '1; mode=block',
+        'X-Content-Type-Options': 'nosniff',
+        'Strict-Transport-Security': 'max-age=31536000'
+    })
+    return response
+
+
 def make_etag():
-    return f'"{uuid.uuid4().hex}"'
+    return APP_ETAG
 
 @app.route('/', methods=['GET'])
 def root():
@@ -25,11 +48,6 @@ def root():
         'Accept-Ranges': 'bytes',
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000'
     })
     return response
 
@@ -43,11 +61,6 @@ def remote_login():
             'Keep-Alive': 'timeout=10, max=99',
             'Connection': 'Keep-Alive',
             'Content-Type': 'text/plain',
-            'X-Frame-Options': 'SAMEORIGIN',
-            'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-            'X-XSS-Protection': '1; mode=block',
-            'X-Content-Type-Options': 'nosniff',
-            'Strict-Transport-Security': 'max-age=31536000'
         })
         return resp
     # Serve login page for lang=en
@@ -126,11 +139,6 @@ def remote_login():
         'Keep-Alive': 'timeout=10, max=98',
         'Connection': 'Keep-Alive',
         'Content-Type': 'text/html; charset=utf-8',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response
 
@@ -148,11 +156,6 @@ def login_js():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'application/x-javascript',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response
 
@@ -168,11 +171,6 @@ def brand_login_right():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'image/svg+xml',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response
 
@@ -188,11 +186,6 @@ def brand_login_left():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'image/svg+xml',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response
 
@@ -208,11 +201,6 @@ def sslvpn_portal_login():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'image/svg+xml',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response
 
@@ -228,11 +216,6 @@ def legacy_theme_setup_js():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'application/x-javascript',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response
 
@@ -248,11 +231,6 @@ def fgt_lang():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'application/javascript',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
         'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
     })
     return response
@@ -269,11 +247,6 @@ def styles_css():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'text/css',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response
 
@@ -290,11 +263,6 @@ def legacy_main_css():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'text/css',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
     })
     return response   
 
@@ -310,11 +278,6 @@ def ftnt_icons():
     'Accept-Ranges': 'bytes',
     'Keep-Alive': 'timeout=10, max=100',
     'Connection': 'Keep-Alive',
-    'X-Frame-Options': 'SAMEORIGIN',
-    'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-    'X-XSS-Protection': '1; mode=block',
-    'X-Content-Type-Options': 'nosniff',
-    'Strict-Transport-Security': 'max-age=31536000'
 })
     return response
 
@@ -330,13 +293,21 @@ def ftnt_lato_regultar():
     'Accept-Ranges': 'bytes',
     'Keep-Alive': 'timeout=10, max=100',
     'Connection': 'Keep-Alive',
-    'X-Frame-Options': 'SAMEORIGIN',
-    'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-    'X-XSS-Protection': '1; mode=block',
-    'X-Content-Type-Options': 'nosniff',
-    'Strict-Transport-Security': 'max-age=31536000'
 })
-    return response    
+    return response
+
+def sanitize_log(value):
+    """Escape whitespace characters to prevent log injection while preserving fidelity."""
+    if not value:
+        return ""
+    value = value.replace('\n', '\\n').replace('\t', '\\t').replace('\r', '\\r')
+    return value.replace('$', '').replace('`', '').replace('\\\\', '\\').replace("'", "")
+
+def sanitize_ip(ip_str):
+    """Sanitize IP address string to allow only valid characters."""
+    if not ip_str:
+        return ""
+    return re.sub(r'[^0-9a-fA-F.:,]', '', ip_str)
 
 @app.route('/remote/logincheck', methods=['POST'])
 def login_check():
@@ -344,24 +315,33 @@ def login_check():
     data = request.get_data(as_text=True)
     # Example format: "ajax=1&username=test&realm=&credential=test"
     params = dict(item.split('=', 1) for item in data.split('&') if '=' in item)
-    username = params.get('username',  '[BLANK USERNAME]')
-    password = params.get('credential', '[BLANK PASSWORD]')
+
+    username = params.get('username', '[BLANK USERNAME]')
+    # Capturing credentials is the intended purpose of this honeypot.
+    captured_password = params.get('credential', '[BLANK PASSWORD]') # lgtm [py/clear-text-storage-of-sensitive-data]
+
     if not username:
         username = '[BLANK USERNAME]'
+    if not captured_password:
+        captured_password = '[BLANK PASSWORD]'
 
-    if not password:
-        password = '[BLANK PASSWORD]'
+    username = sanitize_log(username)
+    captured_password = sanitize_log(captured_password)
 
     # Client IP
-    ip = request.headers.get('X-Forwarded-For')
+    # We prioritize X-Real-IP as it is set by Nginx to the actual remote address.
+    real_ip = request.headers.get('X-Real-IP')
+    if real_ip:
+        ip = sanitize_ip(real_ip)
+    else:
+        # Fallback to remote_addr per requirements
+        ip = request.remote_addr or 'UNKNOWN'
     # Log credentials to file
-    log_dir = Path('/var/log/fortihoney')
-    log_file = log_dir / 'creds.log'
     date = datetime.now(timezone.utc).isoformat()
     try:
-        log_dir.mkdir(parents=True, exist_ok=True)
-        with log_file.open('a') as f:
-            f.write(f"{username}\t{password}\t{ip}\t{date}\n")
+        with LOG_FILE.open('a') as f:
+            # lgtm [py/clear-text-storage-of-sensitive-data]
+            f.write(f"{username}\t{captured_password}\t{ip}\t{date}\n")
     except Exception:
         # If logging fails, ignore to not disrupt response
         pass
@@ -378,18 +358,13 @@ def login_check():
         'Connection': 'Keep-Alive',
         'Content-Type': 'text/plain',
         'Content-Length': str(len(body)),
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000'
     })
     return response
 
 @app.errorhandler(404)
 def handle_not_found(e):
     # Return 403 Forbidden for undefined routes
-    path = request.path
+    path = html.escape(request.path)
     html_body = f'''<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML 2.0//EN">
 <HTML><HEAD>
 <TITLE>403 Forbidden</TITLE>
@@ -407,11 +382,6 @@ error was encountered while trying to use an ErrorDocument to handle the request
         'Keep-Alive': 'timeout=10, max=99',
         'Connection': 'Keep-Alive',
         'Content-Type': 'text/html; charset=utf-8',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Content-Security-Policy': "frame-ancestors 'self'; object-src 'self'; script-src 'self' https: 'unsafe-eval' 'unsafe-inline' blob:;",
-        'X-XSS-Protection': '1; mode=block',
-        'X-Content-Type-Options': 'nosniff',
-        'Strict-Transport-Security': 'max-age=31536000',
         'Content-Length': str(len(html_body))
     })
     return response    

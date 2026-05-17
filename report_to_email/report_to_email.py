@@ -21,9 +21,11 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib.parse import unquote_plus
+import json
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from openrouter import OpenRouter
 
 # ---------------------------------------------------------------------------
 # Paths / template
@@ -38,7 +40,7 @@ DEFAULT_TEMPLATE = BASE_DIR / "email_template.html.jinja"
 def ensure_template(path: pathlib.Path):
     if path.exists():
         return
-    path.write_text("""<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:Segoe UI,system-ui,sans-serif;background:#f9fafb;color:#111827;margin:0;padding:1rem}h1{text-align:center}h2{color:#2563eb}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{padding:.4rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left}th{background:#f3f4f6}</style></head><body><h1>{{ subject }}</h1>{% for title,key in sections %}<h2>{{ title }}</h2><table><thead><tr>{% for col in headers[key] %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>{% for row in data[key] %}<tr>{% for col in headers[key] %}<td>{{ row[col_map[key][loop.index0]] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endfor %}</body></html>""", encoding="utf-8")
+    path.write_text("""<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:Segoe UI,system-ui,sans-serif;background:#f9fafb;color:#111827;margin:0;padding:1rem}h1{text-align:center}h2{color:#2563eb}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{padding:.4rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left}th{background:#f3f4f6}</style></head><body><h1>{{ subject }}</h1>{% if llm_summary %}<h2>LLM Summary</h2><p style="white-space: pre-wrap;">{{ llm_summary }}</p>{% endif %}{% if data.ldap_compromised %}<h2 style="color:red;">🚨 CRITICAL: Valid LDAP Credentials Compromised!</h2><p style="color:red; font-weight:bold;">The following credentials were successfully bound to the LDAP server!</p><table><thead><tr>{% for col in headers.ldap_compromised %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>{% for row in data.ldap_compromised %}<tr>{% for col in headers.ldap_compromised %}<td>{{ row[col_map.ldap_compromised[loop.index0]] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endif %}{% for title,key in sections %}<h2>{{ title }}</h2><table><thead><tr>{% for col in headers[key] %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>{% for row in data[key] %}<tr>{% for col in headers[key] %}<td>{{ row[col_map[key][loop.index0]] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endfor %}</body></html>""", encoding="utf-8")
 
 
 def load_yaml(path: pathlib.Path):
@@ -166,8 +168,60 @@ def query_db(start_iso: str, exfil_set: set[str]):
     else:
         sections["exfil_creds"] = []
 
+    # 8) LDAP Compromised Creds
+    sections["ldap_compromised"] = []
+    try:
+        cur.execute(
+            """
+            SELECT user, password AS pass, ts
+              FROM valid_ldap_creds
+             WHERE ts >= ?
+            """,
+            (start_iso,)
+        )
+        rows = [dict(r) for r in cur.fetchall()]
+        for r in rows:
+            r["user"] = unquote_plus(r["user"])
+            r["pass"] = unquote_plus(r["pass"])
+        sections["ldap_compromised"] = rows
+    except sqlite3.OperationalError:
+        pass # Table might not exist if LDAP check hasn't run yet
+
     conn.close()
     return sections
+
+
+def generate_llm_summary(cfg: dict, sections: dict) -> str:
+    api_key = cfg.get("openrouter_api_key")
+    if not api_key:
+        return ""
+
+    model = cfg.get("openrouter_model", "openai/gpt-3.5-turbo")
+    system_prompt = cfg.get(
+        "system_prompt",
+        "You are a cybersecurity analyst. Summarize the following honeypot data in a brief executive summary. Highlight top IP attackers and most tested credentials."
+    )
+
+    try:
+        client = OpenRouter(
+            api_key=api_key,
+        )
+
+        user_content = json.dumps(sections, indent=2, default=str)
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_content}
+            ],
+        )
+
+        if response.choices:
+            return response.choices[0].message.content or ""
+        return ""
+    except Exception as e:
+        print(f"⚠️ Error generating LLM summary: {e}")
+        return ""
 
 
 def render_html(template_path: pathlib.Path, ctx: dict[str, object]) -> str:
@@ -220,10 +274,12 @@ def main():
     start_dt = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=args.hours)
     exfil_pwds = load_exfil()
     sections = query_db(start_dt.isoformat(), exfil_pwds)
+    llm_summary = generate_llm_summary(cfg, sections)
 
     # Context for Jinja2 template rendering
     ctx = {
         "subject": cfg["subject"],
+        "llm_summary": llm_summary,
         "data": sections,
         # Map table headings for convenience in default template
         "headers": {

@@ -1,2 +1,4 @@
 Jinja2
 PyYAML
+requests
+openrouter

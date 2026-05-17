@@ -18,36 +18,25 @@ import re
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone
-from time import sleep
 
-import requests
+import vt
 import yaml
 
-API_ROOT = "https://www.virustotal.com/api/v3"
-HEADERS = {"Accept": "application/json", "Content-Type": "application/json"}
 BASE_DIR = pathlib.Path(__file__).resolve().parent
 DEFAULT_DB = (BASE_DIR.parent / "db" / "honeypot.db").resolve()
 
 # ──────────────────────────── VT wrappers ───────────────────────────────────
 
-def vt_request(api_key: str, method: str, endpoint: str, **kwargs):
-    url = f"{API_ROOT}{endpoint}"
-    headers = {**HEADERS, "x-apikey": api_key}
-    resp = requests.request(method, url, headers=headers, **kwargs)
-    if resp.status_code in {403, 429}:
-        sleep(15)
-        resp = requests.request(method, url, headers=headers, **kwargs)
-    if not resp.ok:
-        raise RuntimeError(f"VT {resp.status_code}: {resp.text[:200]}")
-    return resp.json()
+def vt_downvote(client: vt.Client, ip: str):
+    client.post(f"/ip_addresses/{ip}/votes", json_data={"data": {"type": "vote", "attributes": {"verdict": "malicious"}}})
 
 
-def vt_downvote(api_key: str, ip: str):
-    vt_request(api_key, "POST", f"/ip_addresses/{ip}/votes", json={"data": {"type": "vote", "attributes": {"verdict": "malicious"}}})
+def vt_comment(client: vt.Client, ip: str, text: str):
+    client.post(f"/ip_addresses/{ip}/comments", json_data={"data": {"type": "comment", "attributes": {"text": text}}})
 
 
-def vt_comment(api_key: str, ip: str, text: str):
-    vt_request(api_key, "POST", f"/ip_addresses/{ip}/comments", json={"data": {"type": "comment", "attributes": {"text": text}}})
+def vt_add_to_collection(client: vt.Client, collection_id: str, ip: str):
+    client.post(f"/collections/{collection_id}/items", json_data={"data": [{"type": "ip_address", "id": ip}]})
 
 # ──────────────────────────── State file ────────────────────────────────────
 
@@ -118,6 +107,7 @@ def main():
     tag = cfg.get("tag", "FortiGate VPN-SSL Honeypot")
     comment_tpl = cfg.get("comment", "IP {ip} seen at {seen}")
     hours_window = cfg.get("hours", 24)
+    collection_id = cfg.get("collection_id")
 
     last_dt = load_last_dt(state_path(tag))
     entries = fetch_new_ips(args.db, last_dt, hours_window)
@@ -127,13 +117,22 @@ def main():
 
     newest_dt = max(seen for _, seen in entries)
 
-    for ip, seen in entries:
-        try:
-            vt_downvote(api_key, ip)
-            vt_comment(api_key, ip, comment_tpl.format(ip=ip, seen=seen.isoformat()))
-            print(f"✅ {ip}")
-        except Exception as e:
-            print(f"⚠️  {ip}: {e}", file=sys.stderr)
+    client = vt.Client(api_key)
+    try:
+        for ip, seen in entries:
+            try:
+                vt_downvote(client, ip)
+                vt_comment(client, ip, comment_tpl.format(ip=ip, seen=seen.isoformat()))
+                if collection_id:
+                    try:
+                        vt_add_to_collection(client, collection_id, ip)
+                    except Exception as e:
+                        print(f"⚠️  {ip} (collection): {e}", file=sys.stderr)
+                print(f"✅ {ip}")
+            except Exception as e:
+                print(f"⚠️  {ip}: {e}", file=sys.stderr)
+    finally:
+        client.close()
 
     save_last_dt(state_path(tag), newest_dt)
     print(f"🗒️  State updated → {newest_dt.isoformat()}")
