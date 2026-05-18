@@ -292,6 +292,7 @@ def main():
         "data": sections,
         # Map table headings for convenience in default template
         "headers": {
+            "llm_summary": ["Executive Summary"],
             "tests_by_ip": ["IP", "count", "Timestamp"],
             "tests_by_user_pass_ip": ["user", "pass", "ip", "count"],
             "tests_by_user": ["user", "count"],
