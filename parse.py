@@ -57,7 +57,7 @@ if os.path.exists(LOG_CREDS) and os.path.getsize(LOG_CREDS) > 0:
 # c. Read and insert nginx
 if os.path.exists(LOG_NGINX) and os.path.getsize(LOG_NGINX) > 0:
     nginx_data = []
-    with open(LOG_NGINX, "r", encoding="utf-8") as f:
+    with open(LOG_NGINX, "r", encoding="utf-8", errors="replace") as f:
         for line in f:
             line = line.strip()
             if not line: continue
