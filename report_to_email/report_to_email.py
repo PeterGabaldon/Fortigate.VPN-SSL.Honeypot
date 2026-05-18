@@ -280,6 +280,10 @@ def main():
     exfil_pwds = load_exfil()
     sections = query_db(start_dt.isoformat(), exfil_pwds)
     llm_summary = generate_llm_summary(cfg, sections)
+    if llm_summary:
+        sections["llm_summary"] = [{"summary": llm_summary}]
+    else:
+        sections["llm_summary"] = []
 
     # Context for Jinja2 template rendering
     ctx = {
