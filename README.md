@@ -86,7 +86,7 @@ $ ./parse.py   # ➜ data/db/honeypot.db gets populated
 
 *The portal will go live on 10443 (host network) by default.*
 To change the port, modify `nginx/dist/conf/honey.conf`.
-Logins are stored in `data/log/honey/creds.log` until `parse.sh` moves them into SQLite.
+Logins are stored in `data/log/honey/creds.log` until `parse.py` moves them into SQLite.
 Logs of nginx are stored in `data/log/nginx/access.log`.
 ---
 
