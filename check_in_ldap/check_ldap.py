@@ -5,7 +5,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from ldap3 import Server, Connection, core
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "ldap_config", "ldap_config.yaml")
 STATE_FILE = os.path.join(os.path.dirname(__file__), "ldap_config", "state_ldap.txt")
@@ -33,7 +33,7 @@ def save_last_timestamp(ts):
         f.write(str(ts))
 
 def render_html_alert(user, password):
-    env = Environment(loader=FileSystemLoader(os.path.dirname(TEMPLATE_PATH)))
+    env = Environment(loader=FileSystemLoader(os.path.dirname(TEMPLATE_PATH)), autoescape=select_autoescape(["html", "xml"]))
     template = env.get_template(os.path.basename(TEMPLATE_PATH))
     return template.render(user=user, password=password)
 
