@@ -36,7 +36,7 @@ def vt_comment(client: vt.Client, ip: str, text: str):
 
 
 def vt_add_to_collection(client: vt.Client, collection_id: str, ip: str):
-    client.post(f"/collections/{collection_id}/items", json_data={"data": [{"type": "ip_address", "id": ip}]})
+    client.post(f"/collections/{collection_id}/ip_addresses", json_data={"data": [{"type": "ip_address", "id": ip}]})
 
 # ──────────────────────────── State file ────────────────────────────────────
 
