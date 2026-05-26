@@ -47,6 +47,11 @@ def send_alert(config, user, password):
     msg['From'] = email_cfg['from']
     msg['To'] = ", ".join(email_cfg['to'])
     
+    # Set headers for high-priority email delivery
+    msg['X-Priority'] = '1'
+    msg['X-MSMail-Priority'] = 'High'
+    msg['Importance'] = 'High'
+    
     text_content = f"Alert! Valid credentials compromised.\n\nUser: {user}\nPassword: {password}\n"
     html_content = render_html_alert(user, password)
     
