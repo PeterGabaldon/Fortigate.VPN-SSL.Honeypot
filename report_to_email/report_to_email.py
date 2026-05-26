@@ -40,7 +40,7 @@ DEFAULT_TEMPLATE = BASE_DIR / "email_template.html.jinja"
 def ensure_template(path: pathlib.Path):
     if path.exists():
         return
-    path.write_text("""<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:Segoe UI,system-ui,sans-serif;background:#f9fafb;color:#111827;margin:0;padding:1rem}h1{text-align:center}h2{color:#2563eb}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{padding:.4rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left;white-space:pre-wrap}th{background:#f3f4f6}</style></head><body><h1>{{ subject }}</h1>{% for title,key in sections %}<h2>{{ title }}</h2><table><thead><tr>{% for col in headers[key] %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>{% for row in data[key] %}<tr>{% for col in headers[key] %}<td>{{ row[col_map[key][loop.index0]] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endfor %}</body></html>""", encoding="utf-8")
+    path.write_text("""<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:Segoe UI,system-ui,sans-serif;background:#f9fafb;color:#111827;margin:0;padding:1rem}h1{text-align:center}h2{color:#2563eb}table{width:100%;border-collapse:collapse;font-size:.9rem;margin-bottom:2rem}th,td{padding:.4rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left;white-space:pre-wrap}th{background:#f3f4f6}.summary-card{background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;padding:1.5rem;margin-bottom:2rem;box-shadow:0 1px 3px rgba(0,0,0,0.05);line-height:1.6;font-size:.95rem;color:#374151}.summary-card h3{margin-top:0;color:#2563eb;font-size:1.2rem}.summary-card ul{margin:.5rem 0;padding-left:1.5rem}.summary-card li{margin-bottom:.25rem}</style></head><body><h1>{{ subject }}</h1>{% if llm_summary %}<div class="summary-card"><h3>🤖 Executive Summary (AI-Generated)</h3><div>{{ llm_summary | safe }}</div></div>{% endif %}{% for title,key in sections %}{% if key != 'llm_summary' %}<h2>{{ title }}</h2><table><thead><tr>{% for col in headers[key] %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>{% for row in data[key] %}<tr>{% for col in headers[key] %}<td>{{ row[col_map[key][loop.index0]] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endif %}{% endfor %}</body></html>""", encoding="utf-8")
 
 
 def load_yaml(path: pathlib.Path):
@@ -199,7 +199,7 @@ def generate_llm_summary(cfg: dict, sections: dict) -> str:
     model = cfg.get("openrouter_model", "openai/gpt-3.5-turbo")
     system_prompt = cfg.get(
         "system_prompt",
-        "You are a cybersecurity analyst. Summarize the following honeypot data in a brief executive summary. Highlight top IP attackers and most tested credentials."
+        "You are a cybersecurity analyst. Summarize the following honeypot data in a brief executive summary. Highlight top IP attackers and most tested credentials. IMPORTANT: Write the summary using raw HTML tags for formatting instead of Markdown. Use <b>bold text</b>, <ul>/<li> for bullet lists, and <br> for line breaks. Do not wrap your response in ```html code blocks."
     )
 
     try:
