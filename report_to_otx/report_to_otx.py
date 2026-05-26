@@ -102,7 +102,7 @@ def create_pulse(otx: OTXv2, cfg: dict, ips: list):
     """
     p = cfg["pulse"]
 
-    indicators = [{"indicator": ip, "type": IndicatorTypes.IPv4} for ip in ips]
+    indicators = [{"indicator": ip, "type": IndicatorTypes.IPv4.name} for ip in ips]
 
     # Create the pulse itself
     try:
@@ -128,16 +128,19 @@ def sync_pulse_indicators(otx: OTXv2, pulse_id: str, ips: list):
     existing_indicators = set(
         i['indicator'] for i in otx.get_pulse_indicators(pulse_id)
     )
+    new_indicators = []
     for ip, dt in ips:
         if ip not in existing_indicators:
-            indicator = {
-                "type":      IndicatorTypes.IPv4,
+            new_indicators.append({
+                "type":      IndicatorTypes.IPv4.name,
                 "indicator": ip
-            }
-            try:
-                otx.add_pulse_indicators(pulse_id, indicator)
-            except BadRequest:
-                print("Error trying to report to OTX: BadRequest")
+            })
+
+    if new_indicators:
+        try:
+            otx.add_pulse_indicators(pulse_id, new_indicators)
+        except BadRequest:
+            print("Error trying to report to OTX: BadRequest")
 
 def main():
     parser = argparse.ArgumentParser(description="Sync honeypot IPs into an OTX Pulse")
