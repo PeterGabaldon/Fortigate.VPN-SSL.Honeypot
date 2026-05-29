@@ -37,7 +37,8 @@ def load_last_reported(state_file: str) -> datetime:
     If it doesn't exist or is invalid, return epoch (UTC).
     """
     if os.path.exists(state_file):
-        content = open(state_file, "r").read().strip()
+        with open(state_file, "r") as f:
+            content = f.read().strip()
         try:
             # We expect an ISO-8601 string like "2025-05-28T04:26:13+00:00"
             return datetime.fromisoformat(content)

@@ -1,6 +1,9 @@
 ldap:
   server: "ldap://dc01.example.local"
   domain: "example.local"
+  # Rate limiting and account lockout protection
+  max_failures_per_user: 3       # Max allowed failed LDAP binds per user in the tracking window
+  lockout_window_seconds: 86400  # Tracking window in seconds (e.g., 86400 for 24 hours)
 alert_email:
   subject: "🚨 HIGH ALERT: Valid Credentials Compromised!"
   from: "honeypot@example.com"

@@ -2,6 +2,7 @@ import sqlite3
 import yaml
 import os
 import smtplib
+from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from ldap3 import Server, Connection, core
@@ -87,6 +88,8 @@ def main():
     
     domain = ldap_cfg.get('domain', '')
     server = Server(ldap_cfg['server'])
+    max_failures = ldap_cfg.get('max_failures_per_user', 3)
+    lockout_window = ldap_cfg.get('lockout_window_seconds', 86400)
     
     last_ts = get_last_timestamp()
     
@@ -102,6 +105,22 @@ def main():
                 ts TEXT
             )
         """)
+        # Ensure the ldap_attempts table exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS ldap_attempts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user TEXT,
+                password TEXT,
+                success INTEGER,
+                ts TEXT
+            )
+        """)
+        conn_db.commit()
+        
+        # Prune old attempts outside the lockout window to keep table small
+        now = datetime.now(timezone.utc)
+        cutoff_ts = (now - timedelta(seconds=lockout_window)).isoformat()
+        cursor.execute("DELETE FROM ldap_attempts WHERE ts < ?", (cutoff_ts,))
         conn_db.commit()
         
         cursor.execute("SELECT user, password, ts FROM honeypot_creds WHERE ts > ? ORDER BY ts ASC", (last_ts,))
@@ -117,18 +136,43 @@ def main():
             
             checked_creds.add((user, password))
             
+            # 1. Skip if already successfully verified in valid_ldap_creds
+            cursor.execute("SELECT 1 FROM valid_ldap_creds WHERE user = ? AND password = ? LIMIT 1", (user, password))
+            if cursor.fetchone():
+                print(f"Credentials for {user} already verified as valid, skipping bind check.")
+                max_ts = max(max_ts, str(ts))
+                continue
+                
+            # 2. Skip if this specific credential combination has already been tried and failed
+            cursor.execute("SELECT 1 FROM ldap_attempts WHERE user = ? AND password = ? AND success = 0 LIMIT 1", (user, password))
+            if cursor.fetchone():
+                print(f"Credentials for {user} (password: [REDACTED]) already checked and failed in the past, skipping bind check.")
+                max_ts = max(max_ts, str(ts))
+                continue
+                
+            # 3. Check rate limiting to prevent Active Directory account lockout
+            cursor.execute("SELECT COUNT(*) FROM ldap_attempts WHERE user = ? AND success = 0", (user,))
+            failed_attempts = cursor.fetchone()[0]
+            if failed_attempts >= max_failures:
+                print(f"Skipping LDAP bind check for user {user} to prevent lockout (failures in window: {failed_attempts}/{max_failures}).")
+                max_ts = max(max_ts, str(ts))
+                continue
+            
             bind_user = f"{user}@{domain}" if domain else user
+            now_str = datetime.now(timezone.utc).isoformat()
             
             try:
                 conn_ldap = Connection(server, user=bind_user, password=password, auto_bind=True)
                 print(f"Bind succeeded for {bind_user}")
                 # Save to database for email report
                 cursor.execute("INSERT INTO valid_ldap_creds (user, password, ts) VALUES (?, ?, ?)", (user, password, ts))
+                cursor.execute("INSERT INTO ldap_attempts (user, password, success, ts) VALUES (?, ?, 1, ?)", (user, password, now_str))
                 # Send email
                 send_alert(config, user, password)
                 conn_ldap.unbind()
             except core.exceptions.LDAPBindError:
                 print(f"Bind failed for {bind_user}")
+                cursor.execute("INSERT INTO ldap_attempts (user, password, success, ts) VALUES (?, ?, 0, ?)", (user, password, now_str))
             except Exception as e:
                 print(f"Error connecting to LDAP for {bind_user}: {e}")
                 
