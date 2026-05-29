@@ -4,7 +4,16 @@ ldap:
   # - StartTLS is also supported: "ldap://dc01.example.local:389" (with start_tls: true)
   # - Plain LDAP without StartTLS: "ldap://ldap01.example.local:389" (refused by default unless allow_cleartext_simple_bind: true)
   server: "ldaps://dc01.example.local:636"
-  domain: "example.local"
+  
+  # Authentication Method: "simple" (default) or "ntlm".
+  # NTLM requires pycryptodome installed (pip install pycryptodome) and does not need OpenSSL legacy providers.
+  auth_method: "simple"
+  
+  # For auth_method: "simple"
+  domain: "example.local"             # DNS domain name for Simple Bind (e.g. user@domain)
+  
+  # For auth_method: "ntlm"
+  ntlm_domain: "EXAMPLE"              # NetBIOS domain name for NTLM Bind (e.g. DOMAIN\user)
   
   # TLS & Security Configuration
   validate_cert: true                 # Set to false only for testing/lab use to ignore TLS certificate verification

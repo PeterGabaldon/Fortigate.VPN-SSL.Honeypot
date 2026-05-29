@@ -32,6 +32,45 @@ def make_bind_user(user, domain):
         
     return user
 
+def looks_like_ldap_dn(user):
+    if not user:
+        return False
+    # Check if starts with common DN prefixes (CN=, UID=, OU=, DC=, etc.)
+    if re.match(r'^(cn|uid|ou|dc|o|c|sn|mail)=', user, re.IGNORECASE):
+        return True
+    # Or contains DN-style comma-separated components (like "cn=xxx,ou=yyy")
+    if "," in user and "=" in user:
+        return True
+    return False
+
+def make_ntlm_bind_user(user, ntlm_domain):
+    if not user:
+        return user
+        
+    if "\\" in user:
+        return user
+
+    if looks_like_ldap_dn(user):
+        raise ValueError("DN-style usernames cannot be used with NTLM authentication")
+
+    if "@" in user:
+        return user
+
+    if ntlm_domain:
+        # Add comments explaining that ntlm_domain should be the NetBIOS domain name
+        # for example EXAMPLE, not necessarily the DNS domain example.local.
+        return f"{ntlm_domain}\\{user}"
+
+    return user
+
+def ensure_ntlm_dependencies():
+    try:
+        from Crypto.Hash import MD4
+        _ = MD4
+    except ImportError:
+        raise ImportError("NTLM authentication requires pycryptodome. Install it with: pip install pycryptodome")
+
+
 def build_ldap_server(ldap_cfg):
     server_uri = ldap_cfg.get('server', '')
     validate_cert = ldap_cfg.get('validate_cert', True)
@@ -59,7 +98,11 @@ def try_ldap_bind(ldap_cfg, bind_user, password):
     server_uri = ldap_cfg.get('server', '')
     start_tls = ldap_cfg.get('start_tls', False)
     allow_cleartext_simple_bind = ldap_cfg.get('allow_cleartext_simple_bind', False)
+    auth_method = ldap_cfg.get('auth_method', 'simple').lower()
     
+    if auth_method not in ('simple', 'ntlm'):
+        return False, f"Unsupported LDAP auth_method: {auth_method}. Supported values are: simple, ntlm"
+        
     is_ldaps = server_uri.lower().startswith("ldaps://")
     is_ldap = server_uri.lower().startswith("ldap://")
     is_cleartext = is_ldap or (not is_ldaps and "://" not in server_uri)
@@ -73,13 +116,19 @@ def try_ldap_bind(ldap_cfg, bind_user, password):
         return False, error_msg
 
     try:
+        if auth_method == 'ntlm':
+            try:
+                ensure_ntlm_dependencies()
+            except ImportError as e:
+                return False, str(e)
+
         server = build_ldap_server(ldap_cfg)
         
         conn = Connection(
             server,
             user=bind_user,
             password=password,
-            authentication='SIMPLE',
+            authentication='NTLM' if auth_method == 'ntlm' else 'SIMPLE',
             auto_bind=False
         )
         
@@ -101,6 +150,7 @@ def try_ldap_bind(ldap_cfg, bind_user, password):
         
     except Exception as e:
         return False, f"LDAP connection/bind error: {e}"
+
 
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "ldap_config", "ldap_config.yaml")
@@ -185,7 +235,12 @@ def main():
     server_uri = ldap_cfg.get('server', '')
     start_tls = ldap_cfg.get('start_tls', False)
     allow_cleartext_simple_bind = ldap_cfg.get('allow_cleartext_simple_bind', False)
+    auth_method = ldap_cfg.get('auth_method', 'simple').lower()
     
+    if auth_method not in ('simple', 'ntlm'):
+        print(f"ERROR: Unsupported LDAP auth_method: {auth_method}. Supported values are: simple, ntlm")
+        return
+        
     # 1. Fast-fail if cleartext simple bind is refused
     is_ldaps = server_uri.lower().startswith("ldaps://")
     is_ldap = server_uri.lower().startswith("ldap://")
@@ -269,7 +324,21 @@ def main():
                 max_ts = max(max_ts, str(ts))
                 continue
             
-            bind_user = make_bind_user(user, domain)
+            try:
+                if auth_method == 'ntlm':
+                    ensure_ntlm_dependencies()
+                    ntlm_domain = ldap_cfg.get('ntlm_domain', '')
+                    bind_user = make_ntlm_bind_user(user, ntlm_domain)
+                else:
+                    bind_user = make_bind_user(user, domain)
+            except ValueError as ve:
+                print(f"Skipping LDAP bind check for user {user}: {ve}")
+                max_ts = max(max_ts, str(ts))
+                continue
+            except ImportError as ie:
+                print(f"ERROR: {ie}")
+                return
+
             now_str = datetime.now(timezone.utc).isoformat()
             
             success, result = try_ldap_bind(ldap_cfg, bind_user, password)
