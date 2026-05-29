@@ -226,21 +226,27 @@ nginx/dist/conf/ssl/nginx.key
 report_to_otx/otx_config/*.yaml
 report_to_otx/otx_config/*.yml
 report_to_otx/otx_config/state_*.txt
+report_to_otx/.venv
 report_to_email/*.yaml
 report_to_email/*.yml
+report_to_email/.venv
 report_to_vt/vt_config/*.yaml
 report_to_vt/vt_config/*.yml
 report_to_vt/vt_config/state_*.txt
+report_to_vt/.venv
 check_in_ldap/ldap_config/*.yaml
 check_in_ldap/ldap_config/*.yml
 check_in_ldap/ldap_config/state_*.txt
+check_in_ldap/.venv
 report_to_abuseipdb/abuseipdb_config/*.yaml
 report_to_abuseipdb/abuseipdb_config/*.yml
 report_to_abuseipdb/abuseipdb_config/state_*.txt
+report_to_abuseipdb/.venv
 output_parsing/**
 db/honeypot.db*
 exfiltrated_passwords.txt
 parse_and_report.service
 parse_and_report.timer
 test_venv/
+
 
