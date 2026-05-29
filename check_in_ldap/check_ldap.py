@@ -124,7 +124,6 @@ def main():
                 print(f"Bind succeeded for {bind_user}")
                 # Save to database for email report
                 cursor.execute("INSERT INTO valid_ldap_creds (user, password, ts) VALUES (?, ?, ?)", (user, password, ts))
-                conn_db.commit()
                 # Send email
                 send_alert(config, user, password)
                 conn_ldap.unbind()
@@ -134,6 +133,8 @@ def main():
                 print(f"Error connecting to LDAP for {bind_user}: {e}")
                 
             max_ts = max(max_ts, str(ts))
+
+        conn_db.commit()
 
         if records:
             save_last_timestamp(max_ts)
