@@ -134,7 +134,7 @@ def remote_login():
     response.set_cookie('SVPNNETWORKCOOKIE', '', path='/remote/network', expires=past, secure=True, httponly=True, samesite='Strict')
     # Set headers
     response.headers.update({
-        'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT'),
+        'Date': datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT'),
         'X-UA-Compatible': 'requiresActiveX=true',
         'Keep-Alive': 'timeout=10, max=98',
         'Connection': 'Keep-Alive',
@@ -231,7 +231,7 @@ def fgt_lang():
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'application/javascript',
-        'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
+        'Date': datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
     })
     return response
 
@@ -257,7 +257,7 @@ def legacy_main_css():
     # Build response
     response = send_from_directory(css_dir, filename, mimetype='text/css')
     response.headers.update({
-        'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT'),
+        'Date': datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT'),
         'ETag': make_etag(),
         'Cache-Control': 'max-age=0, must-revalidate',
         'Keep-Alive': 'timeout=10, max=100',
@@ -353,7 +353,7 @@ def login_check():
     response.set_cookie('SVPNNETWORKCOOKIE', '', path='/remote/network', expires=past, secure=True, httponly=True, samesite='Strict')
     response.headers.update({
         'ETag': make_etag(),
-        'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT'),
+        'Date': datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT'),
         'Keep-Alive': 'timeout=10, max=100',
         'Connection': 'Keep-Alive',
         'Content-Type': 'text/plain',
@@ -378,7 +378,7 @@ error was encountered while trying to use an ErrorDocument to handle the request
     response = Response(html_body, status=403, mimetype='text/html; charset=utf-8')
     # Set headers
     response.headers.update({
-        'Date': datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT'),
+        'Date': datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT'),
         'Keep-Alive': 'timeout=10, max=99',
         'Connection': 'Keep-Alive',
         'Content-Type': 'text/html; charset=utf-8',

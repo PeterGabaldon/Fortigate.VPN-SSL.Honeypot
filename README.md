@@ -107,7 +107,7 @@ flowchart LR
 ```
 Fortigate.VPN-SSL.Honeypot/
 ├── honey/                          # Flask honeypot app
-│   ├── Dockerfile                  # Python 3.8 slim + Flask
+│   ├── Dockerfile                  # Python 3.14 slim + Flask
 │   ├── honey.py                    # Main app (routes, credential capture)
 │   ├── requirements.txt            # Flask
 │   ├── assets/                     # SVG brand assets
