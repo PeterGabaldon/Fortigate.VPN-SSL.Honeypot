@@ -2,11 +2,106 @@ import sqlite3
 import yaml
 import os
 import smtplib
+import re
+import ssl
 from datetime import datetime, timezone, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from ldap3 import Server, Connection, core
+from ldap3 import Server, Connection, Tls, core
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+def make_bind_user(user, domain):
+    if not user:
+        return user
+    
+    # 1. If username contains '@', do not append @domain
+    if "@" in user:
+        return user
+        
+    # 2. If username contains '\', do not append @domain
+    if "\\" in user:
+        return user
+        
+    # 3. If username looks like a full DN, e.g. starts with CN=, UID=, OU=, DC=, etc.
+    if re.match(r'^(cn|uid|ou|dc|o|c|sn|mail)=', user, re.IGNORECASE):
+        return user
+        
+    # 4. Otherwise, append @domain when domain is configured
+    if domain:
+        return f"{user}@{domain}"
+        
+    return user
+
+def build_ldap_server(ldap_cfg):
+    server_uri = ldap_cfg.get('server', '')
+    validate_cert = ldap_cfg.get('validate_cert', True)
+    ca_certs_file = ldap_cfg.get('ca_certs_file', None)
+    timeout = ldap_cfg.get('timeout', 10)
+    start_tls = ldap_cfg.get('start_tls', False)
+    
+    is_ldaps = server_uri.lower().startswith("ldaps://")
+    
+    tls_obj = None
+    if is_ldaps or start_tls:
+        tls_obj = Tls(
+            validate=ssl.CERT_REQUIRED if validate_cert else ssl.CERT_NONE,
+            ca_certs_file=ca_certs_file
+        )
+        
+    server = Server(
+        host=server_uri,
+        tls=tls_obj,
+        connect_timeout=timeout
+    )
+    return server
+
+def try_ldap_bind(ldap_cfg, bind_user, password):
+    server_uri = ldap_cfg.get('server', '')
+    start_tls = ldap_cfg.get('start_tls', False)
+    allow_cleartext_simple_bind = ldap_cfg.get('allow_cleartext_simple_bind', False)
+    
+    is_ldaps = server_uri.lower().startswith("ldaps://")
+    is_ldap = server_uri.lower().startswith("ldap://")
+    is_cleartext = is_ldap or (not is_ldaps and "://" not in server_uri)
+    
+    if is_cleartext and not start_tls and not allow_cleartext_simple_bind:
+        error_msg = (
+            "Cleartext LDAP simple bind is refused by default to prevent credential exposure over the network. "
+            "Please configure LDAPS (ldaps://...), enable StartTLS (start_tls: true), or explicitly set "
+            "allow_cleartext_simple_bind: true in the configuration."
+        )
+        return False, error_msg
+
+    try:
+        server = build_ldap_server(ldap_cfg)
+        
+        conn = Connection(
+            server,
+            user=bind_user,
+            password=password,
+            authentication='SIMPLE',
+            auto_bind=False
+        )
+        
+        conn.open()
+        
+        if start_tls:
+            conn.start_tls()
+            
+        try:
+            if not conn.bind():
+                error_info = str(conn.result.get('description', 'Unknown LDAP bind error'))
+                conn.unbind()
+                return False, f"LDAP bind failed: {error_info}"
+        except core.exceptions.LDAPBindError as e:
+            conn.unbind()
+            return False, f"LDAP bind failed: {e}"
+            
+        return True, conn
+        
+    except Exception as e:
+        return False, f"LDAP connection/bind error: {e}"
+
 
 CONFIG_PATH = os.path.join(os.path.dirname(__file__), "ldap_config", "ldap_config.yaml")
 STATE_FILE = os.path.join(os.path.dirname(__file__), "ldap_config", "state_ldap.txt")
@@ -87,7 +182,23 @@ def main():
         return
     
     domain = ldap_cfg.get('domain', '')
-    server = Server(ldap_cfg['server'])
+    server_uri = ldap_cfg.get('server', '')
+    start_tls = ldap_cfg.get('start_tls', False)
+    allow_cleartext_simple_bind = ldap_cfg.get('allow_cleartext_simple_bind', False)
+    
+    # 1. Fast-fail if cleartext simple bind is refused
+    is_ldaps = server_uri.lower().startswith("ldaps://")
+    is_ldap = server_uri.lower().startswith("ldap://")
+    is_cleartext = is_ldap or (not is_ldaps and "://" not in server_uri)
+    
+    if is_cleartext and not start_tls and not allow_cleartext_simple_bind:
+        print(
+            "ERROR: Cleartext LDAP simple bind is refused by default to prevent credential exposure over the network.\n"
+            "Please configure LDAPS (ldaps://...), enable StartTLS (start_tls: true), or explicitly set "
+            "allow_cleartext_simple_bind: true in the configuration."
+        )
+        return
+    
     max_failures = ldap_cfg.get('max_failures_per_user', 3)
     lockout_window = ldap_cfg.get('lockout_window_seconds', 86400)
     
@@ -158,11 +269,12 @@ def main():
                 max_ts = max(max_ts, str(ts))
                 continue
             
-            bind_user = f"{user}@{domain}" if domain else user
+            bind_user = make_bind_user(user, domain)
             now_str = datetime.now(timezone.utc).isoformat()
             
-            try:
-                conn_ldap = Connection(server, user=bind_user, password=password, auto_bind=True)
+            success, result = try_ldap_bind(ldap_cfg, bind_user, password)
+            if success:
+                conn_ldap = result
                 print(f"Bind succeeded for {bind_user}")
                 # Save to database for email report
                 cursor.execute("INSERT INTO valid_ldap_creds (user, password, ts) VALUES (?, ?, ?)", (user, password, ts))
@@ -170,11 +282,12 @@ def main():
                 # Send email
                 send_alert(config, user, password)
                 conn_ldap.unbind()
-            except core.exceptions.LDAPBindError:
-                print(f"Bind failed for {bind_user}")
-                cursor.execute("INSERT INTO ldap_attempts (user, password, success, ts) VALUES (?, ?, 0, ?)", (user, password, now_str))
-            except Exception as e:
-                print(f"Error connecting to LDAP for {bind_user}: {e}")
+            else:
+                err_msg = result
+                print(f"Bind failed for {bind_user}: {err_msg}")
+                # Log actual authentication/bind failures to prevent AD lockout
+                if "LDAP bind failed" in err_msg:
+                    cursor.execute("INSERT INTO ldap_attempts (user, password, success, ts) VALUES (?, ?, 0, ?)", (user, password, now_str))
                 
             max_ts = max(max_ts, str(ts))
 

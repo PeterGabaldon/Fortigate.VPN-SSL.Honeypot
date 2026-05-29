@@ -378,8 +378,24 @@ Validates captured credentials against an Active Directory / LDAP server. If a b
 
 ```yaml
 ldap:
-  server: "ldap://dc01.example.local"
+  # LDAP Server URI.
+  # - LDAPS is recommended for Windows Active Directory: "ldaps://dc01.example.local:636"
+  # - StartTLS is also supported: "ldap://dc01.example.local:389" (with start_tls: true)
+  # - Plain LDAP without StartTLS: "ldap://ldap01.example.local:389" (refused by default unless allow_cleartext_simple_bind: true)
+  server: "ldaps://dc01.example.local:636"
   domain: "example.local"
+  
+  # TLS & Security Configuration
+  validate_cert: true                 # Set to false only for testing/lab use to ignore TLS certificate verification
+  ca_certs_file: null                 # Path to the CA certificate bundle (PEM format) if using an internal private CA
+  start_tls: false                    # Enable StartTLS (must use 'ldap://' and port 389/3268)
+  allow_cleartext_simple_bind: false  # Refuses plain 'ldap://' cleartext binds if false. Enable only for OpenLDAP or lab use.
+  timeout: 10                         # Connection timeout in seconds
+
+  # Rate limiting and account lockout protection
+  max_failures_per_user: 3       # Max allowed failed LDAP binds per user in the tracking window
+  lockout_window_seconds: 86400  # Tracking window in seconds (e.g., 86400 for 24 hours)
+
 alert_email:
   subject: "🚨 HIGH ALERT: Valid Credentials Compromised!"
   from: "honeypot@example.com"
