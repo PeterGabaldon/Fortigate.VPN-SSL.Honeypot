@@ -80,6 +80,14 @@ def main():
         print("Config not found")
         return
     
+    ldap_cfg = config.get('ldap')
+    if not ldap_cfg:
+        print("LDAP configuration not found")
+        return
+    
+    domain = ldap_cfg.get('domain', '')
+    server = Server(ldap_cfg['server'])
+    
     last_ts = get_last_timestamp()
     
     try:
@@ -109,11 +117,8 @@ def main():
             
             checked_creds.add((user, password))
             
-            ldap_cfg = config['ldap']
-            domain = ldap_cfg.get('domain', '')
             bind_user = f"{user}@{domain}" if domain else user
             
-            server = Server(ldap_cfg['server'])
             try:
                 conn_ldap = Connection(server, user=bind_user, password=password, auto_bind=True)
                 print(f"Bind succeeded for {bind_user}")
