@@ -154,10 +154,9 @@ def query_db(start_iso: str, exfil_set: set[str]):
 
     # 7) Exfiltrated creds section
     if exfil_set:
+        placeholders = ",".join(["?"] * len(exfil_set))
         cur.execute(
-            """SELECT user, password AS pass, ip, ts FROM honeypot_creds WHERE ts >= ? AND password IN ({})""".format(
-                ",".join(["?"] * len(exfil_set))
-            ),
+            f"SELECT user, password AS pass, ip, ts FROM honeypot_creds WHERE ts >= ? AND password IN ({placeholders})",
             (start_iso, *exfil_set),
         )
         rows = [dict(r) for r in cur.fetchall()]
