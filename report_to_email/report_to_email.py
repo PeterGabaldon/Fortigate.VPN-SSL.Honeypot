@@ -22,6 +22,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from urllib.parse import unquote_plus
 import json
+import html
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -41,6 +42,35 @@ def ensure_template(path: pathlib.Path):
     if path.exists():
         return
     path.write_text("""<!DOCTYPE html><html><head><meta charset='utf-8'><style>body{font-family:Segoe UI,system-ui,sans-serif;background:#f9fafb;color:#111827;margin:0;padding:1rem}h1{text-align:center}h2{color:#2563eb}table{width:100%;border-collapse:collapse;font-size:.9rem;margin-bottom:2rem}th,td{padding:.4rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left;white-space:pre-wrap}th{background:#f3f4f6}.summary-card{background:#ffffff;border:1px solid #e5e7eb;border-radius:8px;padding:1.5rem;margin-bottom:2rem;box-shadow:0 1px 3px rgba(0,0,0,0.05);line-height:1.6;font-size:.95rem;color:#374151}.summary-card h3{margin-top:0;color:#2563eb;font-size:1.2rem}.summary-card ul{margin:.5rem 0;padding-left:1.5rem}.summary-card li{margin-bottom:.25rem}</style></head><body><h1>{{ subject }}</h1>{% if llm_summary %}<div class="summary-card"><h3>🤖 Executive Summary (AI-Generated)</h3><div>{{ llm_summary | safe }}</div></div>{% endif %}{% for title,key in sections %}{% if key != 'llm_summary' %}<h2>{{ title }}</h2><table><thead><tr>{% for col in headers[key] %}<th>{{ col }}</th>{% endfor %}</tr></thead><tbody>{% for row in data[key] %}<tr>{% for col in headers[key] %}<td>{{ row[col_map[key][loop.index0]] }}</td>{% endfor %}</tr>{% endfor %}</tbody></table>{% endif %}{% endfor %}</body></html>""", encoding="utf-8")
+
+
+def sanitize_llm_summary(summary: str) -> str:
+    """
+    Escape all HTML characters to prevent XSS / Prompt Injection, then selectively
+    restore safe formatting tags (<b>, <ul>, <li>, <br>) required by the LLM prompt.
+    """
+    escaped = html.escape(summary)
+    safe_tags = {
+        "&lt;b&gt;": "<b>",
+        "&lt;/b&gt;": "</b>",
+        "&lt;B&gt;": "<B>",
+        "&lt;/B&gt;": "</B>",
+        "&lt;ul&gt;": "<ul>",
+        "&lt;/ul&gt;": "</ul>",
+        "&lt;UL&gt;": "<UL>",
+        "&lt;/UL&gt;": "</UL>",
+        "&lt;li&gt;": "<li>",
+        "&lt;/li&gt;": "</li>",
+        "&lt;LI&gt;": "<LI>",
+        "&lt;/LI&gt;": "</LI>",
+        "&lt;br&gt;": "<br>",
+        "&lt;BR&gt;": "<BR>",
+        "&lt;br /&gt;": "<br />",
+        "&lt;br/&gt;": "<br/>"
+    }
+    for esc, raw in safe_tags.items():
+        escaped = escaped.replace(esc, raw)
+    return escaped
 
 
 def load_yaml(path: pathlib.Path):
@@ -280,6 +310,7 @@ def main():
     sections = query_db(start_dt.isoformat(), exfil_pwds)
     llm_summary = generate_llm_summary(cfg, sections)
     if llm_summary:
+        llm_summary = sanitize_llm_summary(llm_summary)
         sections["llm_summary"] = [{"summary": llm_summary}]
     else:
         sections["llm_summary"] = []
