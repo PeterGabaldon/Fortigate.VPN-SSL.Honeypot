@@ -85,6 +85,17 @@ def main():
     try:
         conn_db = sqlite3.connect(DB_PATH)
         cursor = conn_db.cursor()
+        
+        # Ensure the valid_ldap_creds table exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS valid_ldap_creds (
+                user TEXT,
+                password TEXT,
+                ts TEXT
+            )
+        """)
+        conn_db.commit()
+        
         cursor.execute("SELECT user, password, ts FROM honeypot_creds WHERE ts > ? ORDER BY ts ASC", (last_ts,))
         records = cursor.fetchall()
         
