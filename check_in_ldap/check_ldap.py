@@ -181,7 +181,7 @@ def save_last_timestamp(ts):
 def render_html_alert(user, password):
     env = Environment(
         loader=FileSystemLoader(os.path.dirname(TEMPLATE_PATH)),
-        autoescape=select_autoescape(["html", "xml"])
+        autoescape=select_autoescape(["html", "xml", "jinja"])
     )
     template = env.get_template(os.path.basename(TEMPLATE_PATH))
     return template.render(user=user, password=password)
