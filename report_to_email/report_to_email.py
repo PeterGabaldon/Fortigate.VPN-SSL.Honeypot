@@ -259,7 +259,7 @@ def generate_llm_summary(cfg: dict, sections: dict) -> str:
 
 
 def render_html(template_path: pathlib.Path, ctx: dict[str, object]) -> str:
-    env = Environment(loader=FileSystemLoader(str(template_path.parent)), autoescape=select_autoescape(["html", "xml"]))
+    env = Environment(loader=FileSystemLoader(str(template_path.parent)), autoescape=select_autoescape(["html", "xml", "jinja"]))
     return env.get_template(template_path.name).render(**ctx)
 
 
