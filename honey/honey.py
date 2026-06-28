@@ -1,4 +1,5 @@
 from flask import Flask, Response, request, redirect, send_from_directory
+from urllib.parse import unquote_plus
 from datetime import datetime, timezone
 from pathlib import Path
 import html
@@ -301,7 +302,7 @@ def sanitize_log(value):
     if not value:
         return ""
     value = value.replace('\n', '\\n').replace('\t', '\\t').replace('\r', '\\r')
-    return value.replace('$', '').replace('`', '').replace('\\\\', '\\').replace("'", "")
+    return value.replace('$', '').replace('`', '').replace('\\\\', '\\').replace("'", "").replace('\x00', '')
 
 def sanitize_ip(ip_str):
     """Sanitize IP address string to allow only valid characters."""
@@ -316,9 +317,9 @@ def login_check():
     # Example format: "ajax=1&username=test&realm=&credential=test"
     params = dict(item.split('=', 1) for item in data.split('&') if '=' in item)
 
-    username = params.get('username', '[BLANK USERNAME]')
+    username = unquote_plus(params.get('username', '[BLANK USERNAME]'))
     # Capturing credentials is the intended purpose of this honeypot.
-    captured_password = params.get('credential', '[BLANK PASSWORD]') # lgtm [py/clear-text-storage-of-sensitive-data]
+    captured_password = unquote_plus(params.get('credential', '[BLANK PASSWORD]')) # lgtm [py/clear-text-storage-of-sensitive-data]
 
     if not username:
         username = '[BLANK USERNAME]'
