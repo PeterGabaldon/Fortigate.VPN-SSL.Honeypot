@@ -20,7 +20,6 @@ import ssl
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from urllib.parse import unquote_plus
 import json
 import html
 
@@ -121,9 +120,6 @@ def query_db(start_iso: str, exfil_set: set[str]):
         (start_iso,),
     )
     rows = [dict(r) for r in cur.fetchall()]
-    for r in rows:
-        r["user"] = unquote_plus(r["user"])
-        r["pass"] = unquote_plus(r["pass"])
     sections["tests_by_user_pass_ip"] = rows
 
     # ── 3. Attempts by user ──────────────────────────────────────────────────
@@ -138,8 +134,6 @@ def query_db(start_iso: str, exfil_set: set[str]):
         (start_iso,),
     )
     rows = [dict(r) for r in cur.fetchall()]
-    for r in rows:
-        r["user"] = unquote_plus(r["user"])
     sections["tests_by_user"] = rows
 
     # ── 4. Attempts by password ──────────────────────────────────────────────
@@ -154,8 +148,6 @@ def query_db(start_iso: str, exfil_set: set[str]):
         (start_iso,),
     )
     rows = [dict(r) for r in cur.fetchall()]
-    for r in rows:
-        r["password"] = unquote_plus(r["password"])
     sections["tests_by_password"] = rows
 
     # ── 5. Symlink exploit attempts (IP · PATH · COUNT) ─────────────────────────
@@ -190,9 +182,6 @@ def query_db(start_iso: str, exfil_set: set[str]):
             (start_iso, *exfil_set),
         )
         rows = [dict(r) for r in cur.fetchall()]
-        for r in rows:
-            r["user"] = unquote_plus(r["user"])
-            r["pass"] = unquote_plus(r["pass"])
         sections["exfil_creds"] = rows
     else:
         sections["exfil_creds"] = []
@@ -209,9 +198,6 @@ def query_db(start_iso: str, exfil_set: set[str]):
             (start_iso,)
         )
         rows = [dict(r) for r in cur.fetchall()]
-        for r in rows:
-            r["user"] = unquote_plus(r["user"])
-            r["pass"] = unquote_plus(r["pass"])
         sections["ldap_compromised"] = rows
     except sqlite3.OperationalError:
         pass # Table might not exist if LDAP check hasn't run yet
