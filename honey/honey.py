@@ -319,7 +319,7 @@ def login_check():
 
     username = unquote_plus(params.get('username', '[BLANK USERNAME]'))
     # Capturing credentials is the intended purpose of this honeypot.
-    captured_password = unquote_plus(params.get('credential', '[BLANK PASSWORD]')) # lgtm [py/clear-text-storage-of-sensitive-data]
+    captured_password = unquote_plus(params.get('credential', '[BLANK PASSWORD]'))  # lgtm [py/clear-text-storage-of-sensitive-data]
 
     if not username:
         username = '[BLANK USERNAME]'
@@ -341,7 +341,8 @@ def login_check():
     date = datetime.now(timezone.utc).isoformat()
     try:
         with LOG_FILE.open('a') as f:
-            f.write(f"{username}\t{captured_password}\t{ip}\t{date}\n") # lgtm [py/clear-text-storage-of-sensitive-data]
+            # lgtm [py/clear-text-storage-of-sensitive-data]
+            f.write(f"{username}\t{captured_password}\t{ip}\t{date}\n")
     except Exception:
         # If logging fails, ignore to not disrupt response
         pass
