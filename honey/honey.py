@@ -319,7 +319,8 @@ def login_check():
 
     username = unquote_plus(params.get('username', '[BLANK USERNAME]'))
     # Capturing credentials is the intended purpose of this honeypot.
-    captured_password = unquote_plus(params.get('credential', '[BLANK PASSWORD]'))  # lgtm [py/clear-text-storage-of-sensitive-data]
+    # lgtm [py/clear-text-storage-of-sensitive-data]
+    captured_password = unquote_plus(params.get('credential', '[BLANK PASSWORD]'))
 
     if not username:
         username = '[BLANK USERNAME]'
